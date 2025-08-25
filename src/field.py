@@ -18,5 +18,6 @@ class Field:
     status: str = "empty"  # possible statuses = "empty, ship, hit, sunk, unknown"
     color: tuple = (128, 128, 255)
 
-    def assign_color(self):
+    def set_status(self, status: str):
+        self.status = status
         self.color = FIELD_COLORS[self.status]
