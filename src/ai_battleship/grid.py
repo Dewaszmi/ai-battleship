@@ -3,7 +3,7 @@ from typing import Tuple
 
 import numpy as np
 
-from src.field import Field
+from src.ai_battleship.field import Field
 
 
 class Grid:

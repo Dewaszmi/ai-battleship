@@ -1,47 +1,24 @@
 from collections import deque
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import pygame
 
-from src.constants import *
-from src.field import Field
-from src.grid import Cursor, Grid
-from src.init_grid import SHIPS_DICT, init_grids
-
-# pygame setup
-pygame.init()
-SCREEN_WIDTH = GRID_SIZE * (CELL_SIZE + MARGIN) * 2 + MARGIN + 20
-SCREEN_HEIGHT = GRID_SIZE * (CELL_SIZE + MARGIN) + MARGIN + 20
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("AI Battleship")
-
-player_grid, ai_grid = init_grids(GRID_SIZE)
-
-
-def draw_grid(grid, offset_x=0):
-    """Draw a single grid at horizontal offset offset_x"""
-    for row in range(GRID_SIZE):
-        for col in range(GRID_SIZE):
-            field = grid[row, col]
-            color = field.color
-            rect = pygame.Rect(
-                offset_x + (col - 1) * (CELL_SIZE + MARGIN) + MARGIN,
-                (row - 1) * (CELL_SIZE + MARGIN) + MARGIN,
-                CELL_SIZE,
-                CELL_SIZE,
-            )
-            pygame.draw.rect(screen, color, rect)
-            pygame.draw.rect(screen, (255, 255, 255), rect, 1)  # border
+from ..grid import *
+from .base import Phase
 
 
 @dataclass
-class Setup:
+class Setup(Phase):
     grid: Grid
     cursor: Cursor = field(default_factory=lambda: Cursor(0, 0))
     direction: str = "v"  # 'v' - vertical, 'h' - horizontal
-    ships_queue: deque = field(default_factory=lambda: deque(SHIPS_DICT.items()))
-    current_ship: Optional[Tuple[int, int]] = None
+    ships_queue: deque = field(
+        default_factory=lambda: deque(
+            [k for k, v in Setup.SHIPS_DICT.items() for _ in range(v)]
+        )
+    )
+    current_ship: Optional[int] = None
     position: List[Field] = field(default_factory=list)
     done: bool = False
 
@@ -73,7 +50,7 @@ class Setup:
         if not self.current_ship:
             raise ValueError("No current ship to place")
 
-        ship_length, _ = self.current_ship
+        ship_length = self.current_ship
         position = []
 
         for i in range(ship_length):
@@ -151,30 +128,4 @@ class Setup:
                     self.rotate_ship()
 
                 elif event.key == pygame.K_RETURN:
-                    pass
-
-
-# ==== MAIN LOOP ====
-
-setup_phase = Setup(player_grid)
-
-running = True
-while running:
-    events = pygame.event.get()
-    setup_phase.handle_events(events)
-
-    screen.fill((0, 0, 0))
-    draw_grid(player_grid, offset_x=0)
-    draw_grid(ai_grid, offset_x=GRID_SIZE * (CELL_SIZE + MARGIN) + 20)
-
-    # Draw cursor highlight
-    cursor_rect = pygame.Rect(
-        (setup_phase.cursor.col - 1) * (CELL_SIZE + MARGIN) + MARGIN,
-        (setup_phase.cursor.row - 1) * (CELL_SIZE + MARGIN) + MARGIN,
-        CELL_SIZE,
-        CELL_SIZE,
-    )
-    pygame.draw.rect(screen, (255, 255, 0), cursor_rect, 3)  # yellow border
-
-    pygame.display.flip()
-    pygame.time.Clock().tick(60)
+                    self.place_ship()

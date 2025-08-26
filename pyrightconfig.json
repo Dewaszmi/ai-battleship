@@ -1,6 +1,8 @@
 {
-  "include": ["src", "main.py"],
+  "include": ["src"],
   "venvPath": ".",
   "venv": ".venv",
-  "reportMissingImports": true,
+  "analysis": {
+    "extraPaths": ["src"]
+  }
 }
