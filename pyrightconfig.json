@@ -2,6 +2,7 @@
   "include": ["src"],
   "venvPath": ".",
   "venv": ".venv",
+  "reportMissingImports" = false,
   "analysis": {
     "extraPaths": ["src"]
   }
