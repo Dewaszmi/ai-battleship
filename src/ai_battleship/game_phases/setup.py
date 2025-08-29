@@ -6,7 +6,6 @@ import pygame
 from ai_battleship.constants import *
 from ai_battleship.field import Field
 from ai_battleship.game_phases.base import Phase
-from ai_battleship.grid import Cursor
 
 SHIPS_DICT = {
     5: 1,
@@ -20,8 +19,10 @@ HIGHLIGHT = {"good": (0, 255, 0), "bad": (255, 64, 64)}
 
 @dataclass
 class Setup(Phase):
+
+    #:TODO create some kind of ship list to use in the game phase
+
     current_ship: int = 0
-    cursor: Cursor = field(default_factory=lambda: Cursor(0, 0))
     direction: str = "v"  # 'v' - vertical, 'h' - horizontal
     ships_queue: deque[int] = field(
         default_factory=lambda: deque(
@@ -29,12 +30,31 @@ class Setup(Phase):
         )
     )
     position: List[Field] = field(default_factory=list)
-    done: bool = False
+
+    def init_ai_grid(self):  # for testing
+        sample_layout = [
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+        ]
+
+        for i in range(len(sample_layout)):
+            for j in range(len(sample_layout)):
+                self.ai_grid[i, j].set_status(
+                    "ship" if sample_layout[i][j] == 1 else "empty"
+                )
 
     def __post_init__(self):
-        self.grid = self.player_grid  # for clarity
         self.get_next_ship()
         self.get_position()
+        self.init_ai_grid()
 
     def get_next_ship(self):
         """Retrieves the next ship from the queue"""
@@ -46,11 +66,11 @@ class Setup(Phase):
     def is_obstructed(self):
         """Check if current selection is valid for ship placement"""
         area = [
-            self.grid[field.row + adj_row, field.col + adj_col]
+            self.player_grid[field.row + adj_row, field.col + adj_col]
             for field in self.position
             for adj_row in [-1, 0, 1]
             for adj_col in [-1, 0, 1]
-            if self.grid.field_exists(field.row + adj_row, field.col + adj_col)
+            if self.player_grid.field_exists(field.row + adj_row, field.col + adj_col)
         ]
 
         return any(field.status == "ship" for field in area)
@@ -71,10 +91,10 @@ class Setup(Phase):
         position = []
 
         for _ in range(ship_length):
-            if not self.grid.field_exists(row, col):
+            if not self.player_grid.field_exists(row, col):
                 break
 
-            position.append(self.grid[row, col])
+            position.append(self.player_grid[row, col])
 
             if self.direction == "v":
                 row += 1
@@ -95,12 +115,12 @@ class Setup(Phase):
         if self.current_ship != len(self.position):
             correction_dir = "left" if self.direction == "h" else "up"
             for _ in range(self.current_ship - len(self.position)):
-                self.cursor.move(correction_dir, self.grid.grid_size)
+                self.cursor.move(correction_dir, self.player_grid.grid_size)
             self.get_position()
 
     def move_ship(self, direction):
         """Moves the ship in the specified direction"""
-        self.cursor.move(direction, self.grid.grid_size)
+        self.cursor.move(direction, self.player_grid.grid_size)
         self.get_position()
         self.correct_position()
 
@@ -120,38 +140,16 @@ class Setup(Phase):
         self.get_next_ship()
         self.get_position()
 
-    def handle_events(self, events):
-        for event in events:
-            if event.type == pygame.QUIT:
-                pygame.quit()
+    def move(self, direction):
+        self.move_ship(direction)
 
-            elif event.type == pygame.KEYDOWN:
-                dir = None
+    def confirm(self):
+        self.place_ship()
 
-                # Movement keybinds
-                if event.key in [pygame.K_k, pygame.K_UP]:
-                    dir = "up"
-                elif event.key in [pygame.K_l, pygame.K_RIGHT]:
-                    dir = "right"
-                elif event.key in [pygame.K_j, pygame.K_DOWN]:
-                    dir = "down"
-                elif event.key in [pygame.K_h, pygame.K_LEFT]:
-                    dir = "left"
+    def handle_extra_events(self, event):
+        # Rotation keybind
+        if event.key == pygame.K_r:
+            self.rotate_ship()
 
-                if dir:
-                    self.move_ship(dir)
-
-                # Rotation keybind
-                elif event.key == pygame.K_r:
-                    self.rotate_ship()
-
-                # Place ship keybind
-                elif event.key == pygame.K_RETURN:
-                    self.place_ship()
-
-    def draw(self, screen):
-        self.draw_grid_with_cursor(
-            screen, grid=self.player_grid, offset_x=0, cursor=self.cursor
-        )
-        offset = GRID_SIZE * (CELL_SIZE + MARGIN) + MARGIN + 20
-        self.draw_grid(screen, self.ai_grid, offset_x=offset)
+    def draw(self, screen, cursor_pos=0):
+        super().draw(screen, cursor_pos=cursor_pos)

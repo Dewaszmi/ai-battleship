@@ -1,17 +1,18 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from ai_battleship.constants import *
 from ai_battleship.game_phases.base import Phase
-from ai_battleship.grid import Cursor
 
 
 @dataclass
 class Game(Phase):
-    cursor: Cursor = field(default_factory=lambda: Cursor(0, 0))
-    done: bool = False
 
-    def draw(self, screen):
-        self.draw_grid(screen, grid=self.player_grid, offset_x=0)
-        self.draw_grid_with_cursor(
-            screen, grid=self.ai_grid, offset_x=20, cursor=self.cursor
+    def shoot(self):
+        target_field = self.ai_grid[self.cursor.row, self.cursor.col]
+        (
+            target_field.set_status("hit")
+            if target_field.status == "ship"
+            else target_field.set_status("empty")
         )
+
+    def draw(self, screen, cursor_pos=1):
+        super().draw(screen, cursor_pos=cursor_pos)

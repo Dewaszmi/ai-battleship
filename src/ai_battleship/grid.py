@@ -36,6 +36,7 @@ class Cursor:
 
     row: int
     col: int
+    color = (255, 255, 0)  # yellow
 
     def move(self, direction: str, grid_size: int):
         new_row, new_col = self.row, self.col
