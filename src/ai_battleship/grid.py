@@ -26,6 +26,9 @@ class Grid:
         """Modify fields directly via grid[row, col]"""
         self.fields[idx] = value
 
+    def field_exists(self, row, col):
+        return row in range(self.grid_size) and col in range(self.grid_size)
+
 
 @dataclass
 class Cursor:
@@ -33,7 +36,6 @@ class Cursor:
 
     row: int
     col: int
-    color = (0, 255, 0)  # green
 
     def move(self, direction: str, grid_size: int):
         new_row, new_col = self.row, self.col

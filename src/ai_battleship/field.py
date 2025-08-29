@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 FIELD_COLORS = {
     "empty": (128, 128, 255),
@@ -16,8 +16,18 @@ class Field:
     row: int
     col: int
     status: str = "empty"  # possible statuses = "empty, ship, hit, sunk, unknown"
-    color: tuple = (128, 128, 255)
+    color: tuple = field(
+        init=False
+    )  # colors dependent on status, optionally overriden by highlights
+
+    def __post_init__(self):
+        self.set_color()
+
+    def set_color(self, color=None):
+        """Set default color unless specifically passed"""
+        self.color = color if color else FIELD_COLORS[self.status]
 
     def set_status(self, status: str):
+        """Update status and color"""
         self.status = status
-        self.color = FIELD_COLORS[self.status]
+        self.set_color()
