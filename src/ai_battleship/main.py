@@ -16,7 +16,7 @@ def main():
     player_grid = Grid(player="Player", grid_size=GRID_SIZE)
     ai_grid = Grid(player="AI", grid_size=GRID_SIZE)
 
-    setup_phase = Setup(player_grid, ai_grid)
+    setup_phase = Setup(player_grid, ai_grid, GRID_SIZE)
 
     clock = pygame.time.Clock()
     running = True

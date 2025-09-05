@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
 import pygame
+
 from ai_battleship.constants import *
 from ai_battleship.grid import Cursor, Grid
 
@@ -10,6 +11,8 @@ from ai_battleship.grid import Cursor, Grid
 class Phase(ABC):
     player_grid: Grid
     ai_grid: Grid
+    grid_size: int
+    current_grid: Grid = field(init=False)
     cursor: Cursor = field(default_factory=lambda: Cursor(0, 0))
     done: bool = False
 
