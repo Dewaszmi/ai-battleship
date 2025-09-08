@@ -1,8 +1,12 @@
+from os import environ
+
 import pygame
 
 from ai_battleship.constants import *
 from ai_battleship.game_phases.setup import Setup
 from ai_battleship.grid import Grid
+
+environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"  # Supress pygame welcome prompt
 
 
 def main():
@@ -16,7 +20,7 @@ def main():
     player_grid = Grid(player="Player", grid_size=GRID_SIZE)
     ai_grid = Grid(player="AI", grid_size=GRID_SIZE)
 
-    setup_phase = Setup(player_grid, ai_grid, GRID_SIZE)
+    current_phase = Setup(player_grid, ai_grid, GRID_SIZE)
 
     clock = pygame.time.Clock()
     running = True
@@ -27,12 +31,21 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-        setup_phase.handle_events(events)
+        if current_phase.done:
+            current_phase = current_phase.next_phase()
+            if current_phase is None:
+                break
+
+        current_phase.handle_events(events)
 
         screen.fill((0, 0, 0))
-        setup_phase.draw(screen)
+        current_phase.draw(screen)
 
         pygame.display.flip()
         clock.tick(60)
 
     pygame.quit()
+
+
+if __name__ == "__main__":
+    main()

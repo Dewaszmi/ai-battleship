@@ -8,6 +8,7 @@ import pygame
 from ai_battleship.constants import *
 from ai_battleship.field import Field
 from ai_battleship.game_phases.base import Phase
+from ai_battleship.game_phases.game import Game
 
 SHIPS_DICT = {
     5: 1,
@@ -39,7 +40,7 @@ class Setup(Phase):
 
         # Handle player grid setup
         self.current_grid = self.player_grid
-        self.cursor_row, self.cursor_col, self.direction = 0, 0, "v"
+        self.cursor.row, self.cursor.col, self.direction = 0, 0, "v"
         self.get_next_ship()
         self.get_position()
 
@@ -48,12 +49,12 @@ class Setup(Phase):
         queue_copy = deque(self.ships_queue)
         self.get_next_ship(queue_copy)
 
-        max_place_attempts = 20
+        max_attempts = 20
         attempts = 0
 
-        while queue_copy and attempts < max_place_attempts:
+        while attempts < max_attempts:
             # Try a random position and direction
-            self.cursor_row, self.cursor_col, self.direction = (
+            self.cursor.row, self.cursor.col, self.direction = (
                 randrange(self.grid_size),
                 randrange(self.grid_size),
                 choice(["v", "h"]),
@@ -64,14 +65,8 @@ class Setup(Phase):
 
             # Try to place ship, if successful get next ship
             if self.place_ship():
-                print(
-                    f"Placement successful at position: {self.cursor_row}, {self.cursor_col}, {self.direction}"
-                )
-                self.get_next_ship(queue_copy)
-            else:
-                print(
-                    f"Placement failed at position: {self.cursor_row}, {self.cursor_col}, {self.direction}"
-                )
+                if not self.get_next_ship(queue_copy):
+                    break
 
             attempts += 1
 
@@ -79,14 +74,15 @@ class Setup(Phase):
             raise RuntimeError("Failed to generate valid AI grid")
 
     def get_next_ship(self, queue=None):
-        """Retrieves the next ship from the queue"""
+        """Returns the next ship from the queue, or None if queue is empty"""
         if queue is None:
             queue = self.ships_queue
 
-        if len(queue) > 0:
+        if queue:
             self.current_ship = queue.popleft()
-        elif queue is self.ships_queue:
-            self.done = True
+            return True
+        else:
+            return None
 
     def is_obstructed(self):
         """Check if current selection is valid for ship placement"""
@@ -157,7 +153,6 @@ class Setup(Phase):
 
     def place_ship(self):
         """Places ship at current position if possible"""
-
         if self.is_obstructed():
             return False
 
@@ -171,8 +166,15 @@ class Setup(Phase):
         self.move_ship(direction)
 
     def confirm(self):
-        self.place_ship()
-        self.get_next_ship()
+        # Try to place ship
+        if not self.place_ship():
+            return
+
+        if not self.get_next_ship():
+            # All ships have been placed
+            self.done = True
+            return
+
         self.get_position()
 
     def handle_extra_events(self, event):
@@ -182,3 +184,11 @@ class Setup(Phase):
 
     def draw(self, screen, cursor_pos=0):
         super().draw(screen, cursor_pos=cursor_pos)
+
+    def next_phase(self):
+        """Return a new Game phase instance"""
+        return Game(
+            player_grid=self.player_grid,
+            ai_grid=self.ai_grid,
+            grid_size=self.grid_size,
+        )
