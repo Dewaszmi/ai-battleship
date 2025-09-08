@@ -4,15 +4,39 @@ from dataclasses import dataclass, field
 import pygame
 
 from ai_battleship.constants import *
-from ai_battleship.grid import Cursor, Grid
+from ai_battleship.grid import Grid
+
+
+@dataclass
+class Cursor:
+    """Cursor used by the player for navigating the grid"""
+
+    row: int
+    col: int
+
+    def move(self, direction: str, grid_size: int):
+        new_row, new_col = self.row, self.col
+
+        match direction:
+            case "up":
+                new_row -= 1
+            case "right":
+                new_col += 1
+            case "down":
+                new_row += 1
+            case "left":
+                new_col -= 1
+            case _:
+                raise ValueError("Invalid movement direction")
+
+        if new_row in range(grid_size) and new_col in range(grid_size):
+            self.row, self.col = new_row, new_col
 
 
 @dataclass
 class Phase(ABC):
-    player_grid: Grid
-    ai_grid: Grid
-    grid_size: int
-    current_grid: Grid = field(init=False)
+    player_grid: Grid = field(init=False)
+    ai_grid: Grid = field(init=False)
     cursor: Cursor = field(default_factory=lambda: Cursor(0, 0))
     done: bool = False
 
@@ -41,7 +65,7 @@ class Phase(ABC):
                 CELL_SIZE,
                 CELL_SIZE,
             )
-            pygame.draw.rect(screen, cursor.color, rect, 3)
+            pygame.draw.rect(screen, CURSOR_COLOR, rect, 3)
 
     def draw(self, screen, cursor_pos):  # cursor_pos: 0 or 1
         """Draw two grids next to eachother, with cursor placed at the one defined"""

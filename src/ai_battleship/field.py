@@ -1,13 +1,6 @@
 from dataclasses import dataclass, field
 
-FIELD_COLORS = {
-    "empty": (128, 128, 255),
-    "ship": (128, 128, 128),
-    "hit": (255, 0, 0),
-    "miss": (200, 200, 200),
-    "sunk": (64, 64, 64),
-    "unknown": (200, 200, 200),
-}
+from ai_battleship.constants import FIELD_COLORS
 
 
 @dataclass
