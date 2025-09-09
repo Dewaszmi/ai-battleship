@@ -3,6 +3,10 @@ from itertools import chain
 from random import choice
 from time import sleep
 
+import torch
+
+from ai_battleship.ai_agent.agent import Agent
+from ai_battleship.ai_agent.environment import AgentEnvironment
 from ai_battleship.constants import HIGHLIGHT_COLORS
 from ai_battleship.game_phases.base import Phase
 from ai_battleship.utils.grid_utils import *
@@ -10,23 +14,36 @@ from ai_battleship.utils.grid_utils import *
 
 @dataclass
 class Game(Phase):
+    agent: Agent = field(init=False)
     turn: int = field(init=False)  # 0 - player, 1 - ai
 
     def __post_init__(self):
+        # Prepare the AI agent
+        self.agent = Agent()
+        self.agent.model.load_state_dict(torch.load("dqn_battleship.pth"))
+        self.agent.model.eval()
+
         self.turn = choice([0, 1])
         starting_player = "player" if self.turn == 0 else "ai"
         print(f"Starting player: {starting_player}")
 
     def ai_turn(self):
-        # TODO: replace with trained agent
         sleep(0.3)
-        # Choose a random target from available
-        possible_targets = [
-            f
-            for f in chain.from_iterable(self.player_grid.fields)
-            if is_valid_target(f)
-        ]
-        target = choice(possible_targets)
+        # Convert player grid into a tensor
+        state = AgentEnvironment.get_state_from_grid(self.player_grid)
+        row, col = self.agent.select_action(state, epsilon=0.0)
+        target = self.player_grid[row, col]
+        print(f"ai chose: {row}, {col} with state: {target.status}")
+
+        if not is_valid_target(target):
+            print("ai has chosen an invalid target!")
+            possible_targets = [
+                f
+                for f in chain.from_iterable(self.player_grid.fields)
+                if is_valid_target(f)
+            ]
+            target = choice(possible_targets)
+
         shoot(self.player_grid, target.row, target.col)
 
     def handle_turn(self):
