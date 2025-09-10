@@ -16,7 +16,7 @@ def main():
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("AI Battleship")
 
-    current_phase = Setup()
+    current_phase = Setup(screen=screen)
 
     clock = pygame.time.Clock()
     running = True
@@ -31,14 +31,9 @@ def main():
             current_phase = current_phase.next_phase()
             if current_phase is None:
                 break
-
+        
         current_phase.handle_events(events)
-
-        screen.fill((0, 0, 0))
-        current_phase.draw(screen)
-
-        pygame.display.flip()
-        clock.tick(60)
+        clock.tick(30)
 
     pygame.quit()
 

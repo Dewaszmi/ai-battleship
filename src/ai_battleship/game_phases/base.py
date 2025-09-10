@@ -35,12 +35,13 @@ class Cursor:
 
 @dataclass
 class Phase(ABC):
-    player_grid: Grid = field(init=False)
-    ai_grid: Grid = field(init=False)
+    screen: pygame.Surface
+    player_grid: Grid | None = None
+    ai_grid: Grid | None = None
     cursor: Cursor = field(default_factory=lambda: Cursor(0, 0))
     done: bool = False
 
-    def draw_grid(self, screen, grid, offset_x, cursor=None):
+    def draw_grid(self, grid, offset_x, cursor=None):
         """Draw a single grid at horizontal offset offset_x"""
         for row in range(GRID_SIZE):
             for col in range(GRID_SIZE):
@@ -52,12 +53,12 @@ class Phase(ABC):
                     CELL_SIZE,
                     CELL_SIZE,
                 )
-                pygame.draw.rect(screen, color, rect)  # Draw rectangle
-                pygame.draw.rect(screen, (255, 255, 255), rect, 1)  # Draw border
+                pygame.draw.rect(self.screen, color, rect)  # Draw rectangle
+                pygame.draw.rect(self.screen, (255, 255, 255), rect, 1)  # Draw border
 
         # Draw cursor highlight if required
         if cursor is not None:
-            self.draw_grid(screen, grid, offset_x)
+            self.draw_grid(grid, offset_x)
             row, col = cursor.row, cursor.col
             rect = pygame.Rect(
                 offset_x + col * (CELL_SIZE + MARGIN) + MARGIN,
@@ -65,14 +66,17 @@ class Phase(ABC):
                 CELL_SIZE,
                 CELL_SIZE,
             )
-            pygame.draw.rect(screen, CURSOR_COLOR, rect, 3)
+            pygame.draw.rect(self.screen, CURSOR_COLOR, rect, 3)
 
-    def draw(self, screen, cursor_pos):  # cursor_pos: 0 or 1
+    def draw(self, cursor_pos):  # cursor_pos: 0 or 1
         """Draw two grids next to eachother, with cursor placed at the one defined"""
+        print("Drawing...")
+        self.screen.fill((0, 0, 0))
         for i, grid in enumerate([self.player_grid, self.ai_grid]):
             offset = (GRID_SIZE * (CELL_SIZE + MARGIN) + MARGIN + 20) * i
             cursor = self.cursor if i == cursor_pos else None
-            self.draw_grid(screen=screen, grid=grid, offset_x=offset, cursor=cursor)
+            self.draw_grid(grid=grid, offset_x=offset, cursor=cursor)
+        pygame.display.flip()
 
     @abstractmethod
     def move(self, direction):
@@ -113,3 +117,5 @@ class Phase(ABC):
                 # Phase-specific keybinds
                 else:
                     self.handle_extra_events(event)
+                
+                self.draw() # redraw screen after each event

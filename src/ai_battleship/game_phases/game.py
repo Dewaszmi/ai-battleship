@@ -19,12 +19,14 @@ class Game(Phase):
     def __post_init__(self):
         # Prepare the AI agent
         self.agent = Agent()
-        self.agent.model.load_state_dict(torch.load("cnn_battleship.pth"))
+        self.agent.model.load_state_dict(torch.load("battleship_model.pth"))
         self.agent.model.eval()
 
         self.turn = choice([0, 1])
         starting_player = "player" if self.turn == 0 else "ai"
         print(f"Starting player: {starting_player}")
+        self.draw()
+        self.handle_turn()
 
     def ai_turn(self):
         sleep(0.3)
@@ -33,29 +35,10 @@ class Game(Phase):
         row, col = self.agent.select_action(state)
         target = self.player_grid[row, col]
         print(f"ai chose: {row}, {col} with state: {target.status}")
-
         if not is_valid_target(target):
             print("ai has chosen an invalid target!")
-            possible_targets = [
-                f
-                for f in chain.from_iterable(self.player_grid.fields)
-                if is_valid_target(f)
-            ]
-            target = choice(possible_targets)
 
         shoot(self.player_grid, target.row, target.col)
-
-    def handle_turn(self):
-        """Handle turn system, this should run after every player turn"""
-        # End of player turn
-        self.check_victory()
-
-        # Ai turn
-        self.turn = 1
-        self.ai_turn()
-        self.check_victory()
-
-        self.turn = 0
 
     def check_victory(self):
         """Check if the game has finished"""
@@ -81,10 +64,22 @@ class Game(Phase):
     def move(self, direction):
         self.move_cursor(direction)
 
+    def handle_turn(self):
+        """Handle ai turn"""
+        if self.turn == 1:
+            self.ai_turn()
+            self.check_victory()
+            self.turn = 0
+
     def confirm(self):
-        # Ai turn if shot valid target
-        if shoot(self.ai_grid, self.cursor.row, self.cursor.col):
-            self.handle_turn()
+        """Handle player turn"""
+        if not self.done:
+            shoot(self.ai_grid, self.cursor.row, self.cursor.col) # (allows shooting invalid targets by the player to match ai capabilities)
+            self.check_victory()
+            self.draw()
+            if not self.done:
+                self.turn = 1
+                self.handle_turn()
 
     def handle_events(self, events):
         super().handle_events(events)
@@ -92,8 +87,8 @@ class Game(Phase):
     def handle_extra_events(self, event):  # No additional keybinds for Game phase
         pass
 
-    def draw(self, screen, cursor_pos=1):
-        super().draw(screen, cursor_pos=cursor_pos)
+    def draw(self, cursor_pos=1):
+        super().draw(cursor_pos=cursor_pos)
 
     def next_phase(self):
         return None

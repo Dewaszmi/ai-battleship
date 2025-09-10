@@ -49,7 +49,7 @@ def train(episodes):
             reward_window = []
             print(f"Episode {episode}/{episodes} - Avg reward (per {window_size} window size): {avg_reward:.2f}, Epsilon: {epsilon:.3f}")
 
-    torch.save(agent.model.state_dict(), "dqn_battleship.pth")
+    torch.save(agent.model.state_dict(), "battleship_model.pth")
 
     # Plotting
     x = list(range(10, episodes + 1, 10))
@@ -65,4 +65,4 @@ def train(episodes):
     plt.show()
 
 if __name__ == "__main__":
-    train(episodes=500)
+    train(episodes=50)

@@ -36,6 +36,7 @@ class Setup(Phase):
         self.cursor, self.direction = Cursor(0, 0), "v"
         self.current_ship = get_next_ship(self.ships_queue)  # type: ignore
         self.get_ship_position()
+        self.draw()
 
     def get_ship_position(self):
         """Get ship position and update highlights"""
@@ -103,11 +104,10 @@ class Setup(Phase):
         if event.key == pygame.K_r:
             self.rotate_ship()
 
-    def draw(self, screen, cursor_pos=0):
-        super().draw(screen, cursor_pos=cursor_pos)
+    def draw(self, cursor_pos=0):
+        super().draw(cursor_pos=cursor_pos)
 
     def next_phase(self):
         """Return a new Game phase instance"""
-        game_phase = Game()
-        game_phase.player_grid, game_phase.ai_grid = self.player_grid, self.ai_grid
-        return game_phase
+        return Game(screen=self.screen, player_grid=self.player_grid, ai_grid=self.ai_grid)
+    
