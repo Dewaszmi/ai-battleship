@@ -31,7 +31,7 @@ def main():
             current_phase = current_phase.next_phase()
             if current_phase is None:
                 break
-        
+
         current_phase.handle_events(events)
         clock.tick(30)
 

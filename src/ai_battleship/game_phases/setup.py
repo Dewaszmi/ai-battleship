@@ -104,10 +104,11 @@ class Setup(Phase):
         if event.key == pygame.K_r:
             self.rotate_ship()
 
-    def draw(self, cursor_pos=0):
+    def draw(self, cursor_pos=0):  # Draw cursor at the player grid (left)
         super().draw(cursor_pos=cursor_pos)
 
     def next_phase(self):
         """Return a new Game phase instance"""
-        return Game(screen=self.screen, player_grid=self.player_grid, ai_grid=self.ai_grid)
-    
+        return Game(
+            screen=self.screen, player_grid=self.player_grid, ai_grid=self.ai_grid
+        )

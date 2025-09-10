@@ -3,6 +3,7 @@ from itertools import chain
 from random import choice
 from time import sleep
 
+import pygame
 import torch
 
 from ai_battleship.ai_agent.agent import Agent
@@ -15,6 +16,7 @@ from ai_battleship.utils.grid_utils import *
 @dataclass
 class Game(Phase):
     turn: int = field(init=False)  # 0 - player, 1 - ai
+    hitmarker: tuple[int, int] = None  # shot indicator for the ai
 
     def __post_init__(self):
         # Prepare the AI agent
@@ -34,6 +36,7 @@ class Game(Phase):
         state = AgentEnvironment.get_state_from_grid(self.player_grid)
         row, col = self.agent.select_action(state)
         target = self.player_grid[row, col]
+        self.hitmarker = [row, col]  # add visible indicator for where the ai has shot
         print(f"ai chose: {row}, {col} with state: {target.status}")
         if not is_valid_target(target):
             print("ai has chosen an invalid target!")
@@ -74,21 +77,51 @@ class Game(Phase):
     def confirm(self):
         """Handle player turn"""
         if not self.done:
-            shoot(self.ai_grid, self.cursor.row, self.cursor.col) # (allows shooting invalid targets by the player to match ai capabilities)
+            shoot(
+                self.ai_grid, self.cursor.row, self.cursor.col
+            )  # (allows shooting invalid targets by the player to match ai capabilities)
             self.check_victory()
             self.draw()
             if not self.done:
                 self.turn = 1
                 self.handle_turn()
 
-    def handle_events(self, events):
-        super().handle_events(events)
-
     def handle_extra_events(self, event):  # No additional keybinds for Game phase
         pass
 
-    def draw(self, cursor_pos=1):
+    def draw_grid(self, grid, offset_x, cursor=None):
+        """Draw additional hitmarkers for the player grid"""
+        super().draw_grid(grid, offset_x, cursor=cursor)
+
+        if (
+            grid is self.player_grid and self.hitmarker is not None
+        ):  # draw extra hitmarkers for the player grid
+            row, col = self.hitmarker
+            rect = pygame.Rect(
+                offset_x + col * (CELL_SIZE + MARGIN) + MARGIN,
+                row * (CELL_SIZE + MARGIN) + MARGIN,
+                CELL_SIZE,
+                CELL_SIZE,
+            )
+            pygame.draw.line(
+                self.screen,
+                (0, 255, 0),
+                (rect.left, rect.top),
+                (rect.right, rect.bottom),
+                4,
+            )
+            pygame.draw.line(
+                self.screen,
+                (0, 255, 0),
+                (rect.left, rect.bottom),
+                (rect.right, rect.top),
+                4,
+            )
+        self.hitmarker = None
+
+    def draw(self, cursor_pos=1):  # Draw cursor at the ai grid (right)
         super().draw(cursor_pos=cursor_pos)
 
     def next_phase(self):
+        """Returns None to signify that the game has ended"""
         return None

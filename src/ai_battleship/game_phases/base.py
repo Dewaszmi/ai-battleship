@@ -70,7 +70,6 @@ class Phase(ABC):
 
     def draw(self, cursor_pos):  # cursor_pos: 0 or 1
         """Draw two grids next to eachother, with cursor placed at the one defined"""
-        print("Drawing...")
         self.screen.fill((0, 0, 0))
         for i, grid in enumerate([self.player_grid, self.ai_grid]):
             offset = (GRID_SIZE * (CELL_SIZE + MARGIN) + MARGIN + 20) * i
@@ -117,5 +116,5 @@ class Phase(ABC):
                 # Phase-specific keybinds
                 else:
                     self.handle_extra_events(event)
-                
-                self.draw() # redraw screen after each event
+
+                self.draw()  # Redraw screen after each event

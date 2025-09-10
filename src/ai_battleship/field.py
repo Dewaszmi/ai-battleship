@@ -9,7 +9,9 @@ class Field:
 
     row: int
     col: int
-    status: str = "unknown"  # possible statuses = "unknown, ship, miss, hit, sunk, empty"
+    status: str = (
+        "unknown"  # possible statuses = "unknown, ship, miss, hit, sunk, empty"
+    )
     color: tuple = field(
         init=False
     )  # colors dependent on status, optionally overriden by highlights
