@@ -9,13 +9,13 @@ from ai_battleship.grid import Grid
 
 def generate_random_grid(ships_queue):
     """Returns a randomly generated valid grid"""
-    max_attempts = 30
-    attempts = 0
+    # max_attempts = 30
+    # attempts = 0
 
     grid = Grid(GRID_SIZE)
     current_ship = get_next_ship(ships_queue)
 
-    while current_ship and attempts < max_attempts:
+    while current_ship: # and attempts < max_attempts:
         # Try a random position and direction
         random_dir = choice(["v", "h"])
         random_field = choice(get_valid_placements(grid, random_dir, current_ship))
@@ -27,7 +27,7 @@ def generate_random_grid(ships_queue):
         if place_ship(grid, random_position):
             current_ship = get_next_ship(ships_queue)
 
-        attempts += 1
+        # attempts += 1
 
     if current_ship:
         raise RuntimeError("Failed to generate valid AI grid")
@@ -129,7 +129,7 @@ def shoot(target_grid, row, col):
 
 def is_valid_target(target):
     """Check if selected field is a valid target"""
-    return target.status not in ["hit", "sunk", "miss"]
+    return target.status not in ["hit", "sunk", "miss", "empty"] # empty fields are created around the ship that sank, they are guaranteed to not have a ship
 
 
 def get_targeted_ship(target_grid, target):

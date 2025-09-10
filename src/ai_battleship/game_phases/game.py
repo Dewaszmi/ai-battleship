@@ -14,13 +14,12 @@ from ai_battleship.utils.grid_utils import *
 
 @dataclass
 class Game(Phase):
-    agent: Agent = field(init=False)
     turn: int = field(init=False)  # 0 - player, 1 - ai
 
     def __post_init__(self):
         # Prepare the AI agent
         self.agent = Agent()
-        self.agent.model.load_state_dict(torch.load("dqn_battleship.pth"))
+        self.agent.model.load_state_dict(torch.load("cnn_battleship.pth"))
         self.agent.model.eval()
 
         self.turn = choice([0, 1])
@@ -31,7 +30,7 @@ class Game(Phase):
         sleep(0.3)
         # Convert player grid into a tensor
         state = AgentEnvironment.get_state_from_grid(self.player_grid)
-        row, col = self.agent.select_action(state, epsilon=0.0)
+        row, col = self.agent.select_action(state)
         target = self.player_grid[row, col]
         print(f"ai chose: {row}, {col} with state: {target.status}")
 
@@ -66,7 +65,7 @@ class Game(Phase):
         ]
         if not living_ship_fields:
             # No ship tiles left on the target grid
-            ending_prompt = "WIN" if self.turn is 0 else "LOSS"
+            ending_prompt = "WIN" if self.turn == 0 else "LOSS"
             print(f"Game over, status: {ending_prompt}")
             self.done = True
 
