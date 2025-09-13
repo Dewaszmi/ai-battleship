@@ -58,7 +58,6 @@ class Phase(ABC):
 
         # Draw cursor highlight if required
         if cursor is not None:
-            self.draw_grid(grid, offset_x)
             row, col = cursor.row, cursor.col
             rect = pygame.Rect(
                 offset_x + col * (CELL_SIZE + MARGIN) + MARGIN,

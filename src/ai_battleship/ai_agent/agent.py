@@ -27,39 +27,26 @@ class Agent:
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.loss_fn = nn.SmoothL1Loss()  # Huber loss
 
-    def select_action(self, state, epsilon=0, invalid_mask=None):
-        """
-        Epsilon-greedy with optional masking of invalid moves.
-        invalid_mask: tensor of shape [grid_size*grid_size], 1=valid, 0=invalid
-        """
+    def select_action(self, state, epsilon=0):
+        """Epsilon-greedy with optional masking of invalid moves."""
         if random.random() < epsilon:
             # explore
-            valid_indices = (
-                torch.nonzero(invalid_mask).flatten()
-                if invalid_mask is not None
-                else None
-            )
-            if valid_indices is not None and len(valid_indices) > 0:
-                idx = int(valid_indices[torch.randint(len(valid_indices), (1,))])
-            else:
-                idx = random.randint(0, self.grid_size * self.grid_size - 1)
+            idx = random.randint(0, self.grid_size * self.grid_size - 1)
         else:
             # exploit
             with torch.no_grad():
                 state = state.to(self.device)
                 q_values = self.model(state).squeeze(0)  # shape [grid_size*grid_size]
-                if invalid_mask is not None:
-                    q_values = q_values.clone()
-                    q_values[invalid_mask == 0] = -float("inf")  # mask invalid
                 idx = q_values.argmax().item()
 
         row, col = divmod(idx, self.grid_size)
         return row, col
 
     def add_to_memory(self, transition):
-        self.memory.append(transition)
+        state, action, reward, next_state, done = transition
+        self.memory.append((state.cpu(), action, reward, next_state.cpu(), done))
 
-    def train_step(self, batch_size=32):
+    def train_step(self, batch_size=64):
         if len(self.memory) < batch_size:
             return
 

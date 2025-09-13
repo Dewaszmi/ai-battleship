@@ -15,14 +15,16 @@ from ai_battleship.utils.grid_utils import generate_random_grid, shoot
 # - shooting the neighboring fields of a sunk ship is bad --> (guaranteed to have no ship fields)
 class AgentEnvironment:
 
-    def init__(self):
+    def __init__(self):
         self.grid_size = GRID_SIZE
         self.reset()
 
     def reset(self):
         """Generate new target grid for training"""
-        ships_queue = deque([k for k, v in SHIPS_DICT.items() for _ in range(v)])
-        self.target_grid = generate_random_grid(ships_queue)
+        # ships_queue = deque([k for k, v in SHIPS_DICT.items() for _ in range(v)])
+        self.target_grid = Grid(grid_size=self.grid_size)
+        self.target_grid[1, 1].set_status("ship")
+        # self.target_grid = generate_random_grid(ships_queue)
         self.done = False
         return self.get_state_from_grid(self.target_grid)
 
@@ -37,11 +39,11 @@ class AgentEnvironment:
         else:
             target = self.target_grid[row, col]
             if target.status == "miss":
-                reward = -0.1  # Small penalty for missing
+                reward = -1.0  # Small penalty for missing
             elif target.status == "hit":
-                reward = 10.0  # Reward for hits
+                reward = 1.0  # Reward for hits
             elif target.status == "sunk":
-                reward = 30.0  # Large reward for sinking a ship
+                reward = 5.0  # Large reward for sinking a ship
             else:
                 reward = 0.0
 
@@ -57,11 +59,11 @@ class AgentEnvironment:
         # agent has perfect knowledge for now
         status_map = {
             "unknown": 0,  # unshot field
-            "ship": 1,  # unshot ship field
-            "miss": 2,  # missed field
-            "hit": 3,  # hit but not sunk ship field
-            "sunk": 4,  # sunk ship field
-            "empty": 5,  # field surrounding a sunk ship, guaranteed to be empty
+            "ship": 0,  # unshot ship field
+            "miss": 1,  # missed field
+            "hit": 2,  # hit but not sunk ship field
+            "sunk": 1,  # sunk ship field
+            "empty": 1,  # field surrounding a sunk ship, guaranteed to be empty
         }
         state = np.array(
             [[status_map.get(f.status, 0) for f in row] for row in grid.fields]

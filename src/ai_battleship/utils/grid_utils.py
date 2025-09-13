@@ -1,5 +1,6 @@
 # Util methods used in agent training and game loop
 
+from collections import deque
 from random import choice
 
 from ai_battleship.constants import *
@@ -13,6 +14,7 @@ def generate_random_grid(ships_queue):
     # attempts = 0
 
     grid = Grid(GRID_SIZE)
+    ships_queue = deque(ships_queue)
     current_ship = get_next_ship(ships_queue)
 
     while current_ship:  # and attempts < max_attempts:
@@ -27,10 +29,8 @@ def generate_random_grid(ships_queue):
         if place_ship(grid, random_position):
             current_ship = get_next_ship(ships_queue)
 
-        # attempts += 1
-
-    if current_ship:
-        raise RuntimeError("Failed to generate valid AI grid")
+    # if current_ship:
+    #     raise RuntimeError("Failed to generate valid AI grid")
 
     return grid
 

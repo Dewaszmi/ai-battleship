@@ -29,7 +29,7 @@ class Setup(Phase):
         self.done = False
 
         # Initialize AI grid
-        self.ai_grid = generate_random_grid(deque(self.ships_queue))
+        self.ai_grid = generate_random_grid(self.ships_queue)
 
         # Handle player grid setup
         self.player_grid = Grid(GRID_SIZE)
