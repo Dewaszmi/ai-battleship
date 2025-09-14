@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Tuple
+from typing import cast
 
 import numpy as np
 
@@ -20,14 +20,15 @@ class Grid:
             for col in range(self.grid_size):
                 self.fields[row][col] = Field(row=row, col=col)
 
-    def __getitem__(self, idx: Tuple[int, int]) -> Field:
+    def __getitem__(self, idx: tuple[int, int]) -> Field:
         """Access fields via grid[row, col]"""
-        row, col = idx
-        return self.fields[row, col]
 
-    def __setitem__(self, idx: Tuple[int, int], value: Field):
+        row, col = idx
+        return cast(Field, self.fields[row, col])
+
+    def __setitem__(self, idx: tuple[int, int], value: Field):
         """Modify fields directly via grid[row, col]"""
         self.fields[idx] = value
 
-    def field_exists(self, row, col):
+    def field_exists(self, row: int, col: int):
         return row in range(self.grid_size) and col in range(self.grid_size)

@@ -8,7 +8,7 @@ from ai_battleship.field import Field
 from ai_battleship.grid import Grid
 
 
-def generate_random_grid(ships_queue):
+def generate_random_grid(ships_queue: deque[int]):
     """Returns a randomly generated valid grid"""
     # max_attempts = 30
     # attempts = 0
@@ -35,7 +35,7 @@ def generate_random_grid(ships_queue):
     return grid
 
 
-def get_valid_placements(grid: Grid, direction, ship_length) -> list[Field]:
+def get_valid_placements(grid: Grid, direction: str, ship_length: int) -> list[Field]:
     """Return a list of valid placements for the current ship length"""
     max_row = grid.grid_size
     max_col = grid.grid_size
@@ -51,10 +51,10 @@ def get_valid_placements(grid: Grid, direction, ship_length) -> list[Field]:
 
 def get_ship_position(
     grid: Grid, _row: int, _col: int, direction: str, ship_length: int
-):
+) -> list[Field]:
     """Gets position occupied by ship with set coordinates and direction"""
     row, col = _row, _col
-    position = []
+    position: list[Field] = []
 
     for _ in range(ship_length):
         position.append(grid[row, col])
@@ -66,7 +66,7 @@ def get_ship_position(
     return position
 
 
-def is_obstructed(grid: Grid, position: list[Field]):
+def is_obstructed(grid: Grid, position: list[Field]) -> bool:
     """Check if current selection is valid for ship placement"""
     area = [
         grid[field.row + adj_row, field.col + adj_col]
@@ -79,7 +79,7 @@ def is_obstructed(grid: Grid, position: list[Field]):
     return any(field.status == "ship" for field in area)
 
 
-def place_ship(grid: Grid, position: list[Field]):
+def place_ship(grid: Grid, position: list[Field]) -> bool:
     """Places ship at current position if possible"""
     if is_obstructed(grid, position):
         return False
@@ -90,15 +90,13 @@ def place_ship(grid: Grid, position: list[Field]):
     return True
 
 
-def get_next_ship(queue):
+def get_next_ship(queue: deque[int]) -> int | None:
     """Returns the next ship from the queue, or None if queue is empty"""
     return queue.popleft() if queue else None
 
 
-def shoot(target_grid, row, col):
+def shoot(target_grid: Grid, target: Field):
     """Try to fire at selected field, return False if invalid target"""
-    target = target_grid[row, col]
-
     # Check if valid target
     if not is_valid_target(target):
         return False
@@ -127,7 +125,7 @@ def shoot(target_grid, row, col):
     return True
 
 
-def is_valid_target(target):
+def is_valid_target(target: Field) -> bool:
     """Check if selected field is a valid target"""
     return target.status not in [
         "hit",
@@ -137,16 +135,16 @@ def is_valid_target(target):
     ]  # empty fields are created around the ship that sank, they are guaranteed to not have a ship
 
 
-def get_targeted_ship(target_grid, target):
+def get_targeted_ship(target_grid: Grid, target: Field) -> list[Field] | None:
     """Return the ship hit by the shot, or None if missed"""
     return next((ship for ship in target_grid.ships if target in ship), None)
 
 
-def check_if_sunk(target_ship):
+def check_if_sunk(target_ship: list[Field]) -> bool:
     """Check if the targeted ship was sunk"""
     return all(f.status == "hit" for f in target_ship)
 
 
-def clear_highlights(grid):
+def clear_highlights(grid: Grid):
     for f in grid.fields.flat:
         f.set_color()

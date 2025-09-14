@@ -1,72 +1,145 @@
-import numpy as np
+import pygame
 import torch
 
 from ai_battleship.ai_agent.agent import Agent
 from ai_battleship.ai_agent.environment import AgentEnvironment
-from ai_battleship.constants import GRID_SIZE
+from ai_battleship.constants import *
+from ai_battleship.grid import Grid
+
+VISUALISE_INTERVAL = 50
 
 
-def train(episodes=500, num_envs=16):
-    envs = [AgentEnvironment() for _ in range(num_envs)]
-    agent = Agent(grid_size=GRID_SIZE)
-    print("Using device:", agent.device)
+def draw_visualisation(
+    screen: pygame.Surface,
+    grid: Grid,
+    agent: Agent,
+    state: torch.Tensor,
+    hitmarker: tuple[int, int],
+):
+    """Draw the game grid and a heatmap of Q-values side by side."""
+    screen.fill((0, 0, 0))
+    grid_size = grid.grid_size
 
-    torch.backends.cudnn.benchmark = True
+    # --- Left: normal game grid ---
+    offset_x = 0
+    for row in range(grid_size):
+        for col in range(grid_size):
+            field = grid[row, col]
+            color = field.color
+            rect = pygame.Rect(
+                offset_x + col * (CELL_SIZE + MARGIN) + MARGIN,
+                row * (CELL_SIZE + MARGIN) + MARGIN,
+                CELL_SIZE,
+                CELL_SIZE,
+            )
+            pygame.draw.rect(screen, color, rect)
+            pygame.draw.rect(screen, (255, 255, 255), rect, 1)
 
-    epsilon = 1.0
-    epsilon_decay = 0.996
-    epsilon_min = 0.05
+            row, col = hitmarker
+            rect = pygame.Rect(
+                offset_x + col * (CELL_SIZE + MARGIN) + MARGIN,
+                row * (CELL_SIZE + MARGIN) + MARGIN,
+                CELL_SIZE,
+                CELL_SIZE,
+            )
+            pygame.draw.line(
+                screen,
+                (0, 255, 0),
+                (rect.left, rect.top),
+                (rect.right, rect.bottom),
+                4,
+            )
+            pygame.draw.line(
+                screen,
+                (0, 255, 0),
+                (rect.left, rect.bottom),
+                (rect.right, rect.top),
+                4,
+            )
 
-    reward_window = []
+    # --- Right: heatmap from Q-values ---
+    offset_x = grid_size * (CELL_SIZE + MARGIN) + MARGIN + 20
+    with torch.no_grad():
+        q_values = agent.model(state.unsqueeze(0).to(agent.device))[0]  # [H*W]
+    q_map = q_values.view(grid_size, grid_size).cpu().numpy()
 
-    for episode in range(1, episodes + 1):
-        states = [env.reset().to(agent.device) for env in envs]
-        dones = [False] * num_envs
-        episode_rewards = [0] * num_envs
-        transitions = []
+    # Normalize for colormap [0..1]
+    q_min, q_max = q_map.min(), q_map.max()
+    norm = (q_map - q_min) / (q_max - q_min + 1e-8)
 
-        while not all(dones):
-            actions = []
-            for i, env in enumerate(envs):
-                if not dones[i]:
-                    action = agent.select_action(states[i], epsilon)
-                else:
-                    action = (0, 0)
-                actions.append(action)
+    for row in range(grid_size):
+        for col in range(grid_size):
+            val = norm[row, col]
+            # map value → color (blue→red)
+            color = (int(255 * val), 0, int(255 * (1 - val)))
+            rect = pygame.Rect(
+                offset_x + col * (CELL_SIZE + MARGIN) + MARGIN,
+                row * (CELL_SIZE + MARGIN) + MARGIN,
+                CELL_SIZE,
+                CELL_SIZE,
+            )
+            pygame.draw.rect(screen, color, rect)
+            pygame.draw.rect(screen, (255, 255, 255), rect, 1)
 
-            for i, env in enumerate(envs):
-                if not dones[i]:
-                    next_state, reward, done = env.step(actions[i])
-                    next_state = next_state.to(agent.device)
-                    transitions.append(
-                        (states[i], actions[i], reward, next_state, done)
-                    )
-                    states[i] = next_state
-                    episode_rewards[i] += reward
-                    dones[i] = done
+    pygame.display.flip()
 
-        # Add transitions and train once per step block
-        for t in transitions:
-            agent.add_to_memory(t)
 
-        agent.train_step(batch_size=64)
-        epsilon = max(epsilon * epsilon_decay, epsilon_min)
+def train(
+    episodes: int = 500,
+    batch_size: int = 64,
+    epsilon_start: float = 1.0,
+    epsilon_end: float = 0.05,
+    epsilon_decay: float = 0.995,
+    target_update: int = 10,
+    device: str = "cpu",
+):
+    env = AgentEnvironment()
+    agent = Agent(grid_size=env.grid_size, device=device)
 
-        reward_window.append(sum(episode_rewards) / num_envs)
-        if episode % 50 == 0:
-            avg_reward = np.mean(episode_rewards[-10:])
-            print(f"Episode {episode}, Avg Reward (last 10): {avg_reward:.2f}")
+    epsilon = epsilon_start
 
-            with torch.no_grad():
-                q = (
-                    agent.model(states[0])
-                    .squeeze(0)
-                    .view(agent.grid_size, agent.grid_size)
-                )
-                print("Q-values for env 0:\n", q.cpu().numpy())
+    pygame.init()
+    grid_size = GRID_SIZE
+    width = (CELL_SIZE + MARGIN) * grid_size * 2  # two grids side by side
+    height = (CELL_SIZE + MARGIN) * grid_size
+    screen = pygame.display.set_mode((width, height))
+    pygame.display.set_caption("Battleship AI Visualisation")
 
-    torch.save(agent.model.state_dict(), "battleship_model.pth")
+    for episode in range(episodes):
+        state = env.reset()
+        total_reward = 0.0
+
+        while not env.done:
+            # select action
+            action = agent.select_action(state, epsilon=epsilon)
+
+            # environment step
+            next_state, reward, done = env.step(action)
+
+            # store transition
+            agent.add_to_memory((state, action, reward, next_state, done))
+
+            # train agent
+            agent.train_step(batch_size)
+
+            state = next_state
+            total_reward += reward
+            if episode % VISUALISE_INTERVAL == 0:
+                draw_visualisation(screen, env.grid, agent, state, action)
+
+        # decay epsilon
+        epsilon = max(epsilon_end, epsilon * epsilon_decay)
+
+        # update target network
+        if episode % target_update == 0:
+            agent.update_target_network()
+
+        if episode % VISUALISE_INTERVAL == 0:
+            print(
+                f"Episode {episode+1}/{episodes}, Reward: {total_reward:.2f}, Epsilon: {epsilon:.3f}"
+            )
 
 
 if __name__ == "__main__":
+    torch.manual_seed(42)
     train()

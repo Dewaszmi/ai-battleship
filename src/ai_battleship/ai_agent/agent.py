@@ -1,52 +1,53 @@
 import random
 from collections import deque
+from typing import cast
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from ai_battleship.ai_agent.environment import CNN
-from ai_battleship.constants import GRID_SIZE
+from ai_battleship.ai_agent.model import CNN
 
 
 class Agent:
-    def __init__(
-        self, grid_size=GRID_SIZE, hidden_dim=128, lr=1e-3, gamma=0.99, tau=0.01
-    ):
+    def __init__(self, grid_size: int, device: str | torch.device = "cpu"):
         self.grid_size = grid_size
-        self.gamma = gamma
-        self.tau = tau  # soft update rate for target network
-        self.memory = deque(maxlen=5000)
+        self.device = torch.device(device)
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = CNN(self.grid_size, hidden_dim).to(self.device)
-        self.target_model = CNN(self.grid_size, hidden_dim).to(self.device)
+        self.model = CNN(grid_size=grid_size).to(self.device)
+        self.target_model = CNN(grid_size=grid_size).to(self.device)
         self.target_model.load_state_dict(self.model.state_dict())
         self.target_model.eval()
 
-        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
-        self.loss_fn = nn.SmoothL1Loss()  # Huber loss
+        self.optimizer: optim.Optimizer = optim.Adam(self.model.parameters(), lr=1e-3)
+        self.loss_fn = nn.MSELoss()
 
-    def select_action(self, state, epsilon=0):
-        """Epsilon-greedy with optional masking of invalid moves."""
+        self.memory: deque[
+            tuple[torch.Tensor, tuple[int, int], float, torch.Tensor, bool]
+        ] = deque(maxlen=5000)
+        self.gamma = 0.99
+
+    def select_action(
+        self, state: torch.Tensor, epsilon: float = 0.1
+    ) -> tuple[int, int]:
+        """epsilon-greedy action selection"""
         if random.random() < epsilon:
-            # explore
-            idx = random.randint(0, self.grid_size * self.grid_size - 1)
-        else:
-            # exploit
-            with torch.no_grad():
-                state = state.to(self.device)
-                q_values = self.model(state).squeeze(0)  # shape [grid_size*grid_size]
-                idx = q_values.argmax().item()
+            # random action
+            return random.randrange(self.grid_size), random.randrange(self.grid_size)
 
-        row, col = divmod(idx, self.grid_size)
+        with torch.no_grad():
+            q_values = self.model(state.unsqueeze(0).to(self.device))  # [1, H*W]
+            action_idx = q_values.argmax(dim=1).item()
+        row, col = divmod(action_idx, self.grid_size)
         return row, col
 
-    def add_to_memory(self, transition):
-        state, action, reward, next_state, done = transition
-        self.memory.append((state.cpu(), action, reward, next_state.cpu(), done))
+    def add_to_memory(
+        self,
+        transition: tuple[torch.Tensor, tuple[int, int], float, torch.Tensor, bool],
+    ):
+        self.memory.append(transition)
 
-    def train_step(self, batch_size=64):
+    def train_step(self, batch_size: int = 64):
         if len(self.memory) < batch_size:
             return
 
@@ -55,41 +56,29 @@ class Agent:
 
         states = torch.stack(states).to(self.device)
         next_states = torch.stack(next_states).to(self.device)
-        rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
-        dones = torch.tensor(dones, dtype=torch.float32).to(self.device)
+        rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device)
+        dones = torch.tensor(dones, dtype=torch.float32, device=self.device)
 
-        # Q-values for current states
-        q_values = self.model(states)  # shape [B, grid_size*grid_size]
+        # flatten action indices
+        action_indices = [r * self.grid_size + c for (r, c) in actions]
+        action_indices = torch.tensor(action_indices, device=self.device)
 
-        # Select actions
-        action_indices = torch.tensor(
-            [r * self.grid_size + c for (r, c) in actions]
-        ).to(self.device)
-        q_selected = q_values[range(batch_size), action_indices]
+        # Q(s, a)
+        q_values = self.model(states)  # [B, H*W]
+        q_values = q_values.gather(1, action_indices.unsqueeze(1)).squeeze(1)
 
-        # Double DQN target
+        # Target Q
         with torch.no_grad():
-            next_q_main = self.model(next_states)
-            next_actions = next_q_main.argmax(dim=1)
-            next_q_target = self.target_model(next_states)
-            q_target = (
-                rewards
-                + self.gamma
-                * (1 - dones)
-                * next_q_target[range(batch_size), next_actions]
+            next_q_values = self.target_model(next_states).max(1)[0]
+            targets = cast(
+                torch.Tensor, rewards + self.gamma * next_q_values * (1 - dones)
             )
 
-        # Compute Huber loss
-        loss = self.loss_fn(q_selected, q_target)
+        loss = self.loss_fn(q_values, targets)
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-        # Soft update target network
-        for target_param, param in zip(
-            self.target_model.parameters(), self.model.parameters()
-        ):
-            target_param.data.copy_(
-                self.tau * param.data + (1.0 - self.tau) * target_param.data
-            )
+    def update_target_network(self):
+        self.target_model.load_state_dict(self.model.state_dict())

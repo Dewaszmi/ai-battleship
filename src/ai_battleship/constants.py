@@ -14,7 +14,7 @@ GRID_HEIGHT = CELL_SIZE * GRID_SIZE
 #     2: 1,
 # }
 
-SHIPS_DICT = {1: 1}
+SHIPS_DICT = {4: 1}
 
 # Field colors
 FIELD_COLORS = {

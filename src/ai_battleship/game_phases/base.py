@@ -36,12 +36,12 @@ class Cursor:
 @dataclass
 class Phase(ABC):
     screen: pygame.Surface
-    player_grid: Grid | None = None
-    ai_grid: Grid | None = None
+    player_grid: Grid = field(init=False)
+    ai_grid: Grid = field(init=False)
     cursor: Cursor = field(default_factory=lambda: Cursor(0, 0))
     done: bool = False
 
-    def draw_grid(self, grid, offset_x, cursor=None):
+    def draw_grid(self, grid: Grid, offset_x: int, cursor: Cursor | None = None):
         """Draw a single grid at horizontal offset offset_x"""
         for row in range(GRID_SIZE):
             for col in range(GRID_SIZE):
@@ -67,17 +67,18 @@ class Phase(ABC):
             )
             pygame.draw.rect(self.screen, CURSOR_COLOR, rect, 3)
 
-    def draw(self, cursor_pos):  # cursor_pos: 0 or 1
+    @abstractmethod
+    def draw(self, cursor_grid: int = 0):  # cursor_grid: 0 or 1
         """Draw two grids next to eachother, with cursor placed at the one defined"""
         self.screen.fill((0, 0, 0))
         for i, grid in enumerate([self.player_grid, self.ai_grid]):
             offset = (GRID_SIZE * (CELL_SIZE + MARGIN) + MARGIN + 20) * i
-            cursor = self.cursor if i == cursor_pos else None
+            cursor = self.cursor if i == cursor_grid else None
             self.draw_grid(grid=grid, offset_x=offset, cursor=cursor)
         pygame.display.flip()
 
     @abstractmethod
-    def move(self, direction):
+    def move(self, direction: str):
         pass
 
     @abstractmethod
@@ -85,10 +86,10 @@ class Phase(ABC):
         pass
 
     @abstractmethod
-    def handle_extra_events(self, event):
+    def handle_extra_events(self, event: pygame.event.EventType):
         pass
 
-    def handle_events(self, events):
+    def handle_events(self, events: list[pygame.event.EventType]) -> None:
         for event in events:
             if event.type == pygame.QUIT:
                 pygame.quit()

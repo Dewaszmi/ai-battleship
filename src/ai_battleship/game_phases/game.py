@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from itertools import chain
 from random import choice
 from time import sleep
+from typing import final, override
 
 import pygame
 import torch
@@ -9,19 +10,26 @@ import torch
 from ai_battleship.ai_agent.agent import Agent
 from ai_battleship.ai_agent.environment import AgentEnvironment
 from ai_battleship.constants import HIGHLIGHT_COLORS
-from ai_battleship.game_phases.base import Phase
+from ai_battleship.game_phases.base import Cursor, Phase
 from ai_battleship.utils.grid_utils import *
 
 
+@final
 @dataclass
 class Game(Phase):
+    player_grid: Grid
+    ai_grid: Grid
     turn: int = field(init=False)  # 0 - player, 1 - ai
-    hitmarker: tuple[int, int] = None  # shot indicator for the ai
+    agent: Agent = field(init=False)
+    hitmarker: tuple[int, int] | None = field(default=None)  # shot indicator for the ai
 
     def __post_init__(self):
         # Prepare the AI agent
-        self.agent = Agent()
-        self.agent.model.load_state_dict(torch.load("battleship_model.pth"))
+        self.agent = Agent(grid_size=self.player_grid.grid_size)
+        self.agent.model.load_state_dict(
+            torch.load("battleship_model.pth", map_location=self.agent.device)
+        )
+        self.agent.model.to(self.agent.device)
         self.agent.model.eval()
 
         self.turn = choice([0, 1])
@@ -36,12 +44,12 @@ class Game(Phase):
         state = AgentEnvironment.get_state_from_grid(self.player_grid)
         row, col = self.agent.select_action(state)
         target = self.player_grid[row, col]
-        self.hitmarker = [row, col]  # add visible indicator for where the ai has shot
+        self.hitmarker = (row, col)  # add visible indicator for where the ai has shot
         print(f"ai chose: {row}, {col} with state: {target.status}")
         if not is_valid_target(target):
             print("ai has chosen an invalid target!")
 
-        shoot(self.player_grid, target.row, target.col)
+        shoot(self.player_grid, target)
 
     def check_victory(self):
         """Check if the game has finished"""
@@ -55,7 +63,7 @@ class Game(Phase):
             print(f"Game over, status: {ending_prompt}")
             self.done = True
 
-    def move_cursor(self, direction):
+    def move_cursor(self, direction: str):
         """Move cursor in the specified direction and set highlight accordingly"""
         clear_highlights(self.ai_grid)
 
@@ -64,9 +72,6 @@ class Game(Phase):
         if not is_valid_target(new_target):
             new_target.set_color(HIGHLIGHT_COLORS["bad"])
 
-    def move(self, direction):
-        self.move_cursor(direction)
-
     def handle_turn(self):
         """Handle ai turn"""
         if self.turn == 1:
@@ -74,11 +79,16 @@ class Game(Phase):
             self.check_victory()
             self.turn = 0
 
+    @override
+    def move(self, direction: str):
+        self.move_cursor(direction)
+
+    @override
     def confirm(self):
         """Handle player turn"""
         if not self.done:
             shoot(
-                self.ai_grid, self.cursor.row, self.cursor.col
+                self.ai_grid, self.ai_grid[self.cursor.col, self.cursor.row]
             )  # (allows shooting invalid targets by the player to match ai capabilities)
             self.check_victory()
             self.draw()
@@ -86,10 +96,14 @@ class Game(Phase):
                 self.turn = 1
                 self.handle_turn()
 
-    def handle_extra_events(self, event):  # No additional keybinds for Game phase
+    @override
+    def handle_extra_events(
+        self, event: pygame.event.EventType
+    ):  # No additional keybinds for Game phase
         pass
 
-    def draw_grid(self, grid, offset_x, cursor=None):
+    @override
+    def draw_grid(self, grid: Grid, offset_x: int, cursor: Cursor | None = None):
         """Draw additional hitmarkers for the player grid"""
         super().draw_grid(grid, offset_x, cursor=cursor)
 
@@ -119,8 +133,9 @@ class Game(Phase):
             )
         self.hitmarker = None
 
-    def draw(self, cursor_pos=1):  # Draw cursor at the ai grid (right)
-        super().draw(cursor_pos=cursor_pos)
+    @override
+    def draw(self, cursor_grid: int = 1):  # Draw cursor at the ai grid (right)
+        super().draw(cursor_grid=cursor_grid)
 
     def next_phase(self):
         """Returns None to signify that the game has ended"""

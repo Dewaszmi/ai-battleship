@@ -1,6 +1,6 @@
 from collections import deque
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import override
 
 import pygame
 
@@ -15,31 +15,33 @@ ship_amount = sum(SHIPS_DICT.values())
 
 @dataclass
 class Setup(Phase):
-    current_ship: Optional[int] = field(init=False)
+    current_ship: int | None = field(init=False)
     direction: str = field(init=False)  # 'v' - vertical, 'h' - horizontal
     ships_queue: deque[int] = field(
         default_factory=lambda: deque(
             [k for k, v in SHIPS_DICT.items() for _ in range(v)]
         )
     )
-    position: List[Field] = field(default_factory=list)
-    allowed_fields: list = field(init=False)
+    position: list[Field] = field(default_factory=list)
+    allowed_fields: list[Field] = field(init=False)
 
     def __post_init__(self):
-        self.done = False
+        self.done: bool = False
 
         # Initialize AI grid
-        self.ai_grid = generate_random_grid(self.ships_queue)
+        self.ai_grid: Grid = generate_random_grid(self.ships_queue)
 
         # Handle player grid setup
-        self.player_grid = Grid(GRID_SIZE)
-        self.cursor, self.direction = Cursor(0, 0), "v"
-        self.current_ship = get_next_ship(self.ships_queue)  # type: ignore
+        self.player_grid: Grid = Grid(GRID_SIZE)
+        self.cursor: Cursor = Cursor(0, 0)
+        self.direction = "v"
+        self.current_ship = get_next_ship(self.ships_queue)
         self.get_ship_position()
         self.draw()
 
     def get_ship_position(self):
         """Get ship position and update highlights"""
+        assert self.current_ship is not None
         # Clear previous highlights
         clear_highlights(self.player_grid)
 
@@ -48,7 +50,7 @@ class Setup(Phase):
             self.cursor.row,
             self.cursor.col,
             self.direction,
-            self.current_ship,  # type: ignore
+            self.current_ship,
         )
 
         # Add updated highlight
@@ -61,7 +63,8 @@ class Setup(Phase):
 
     def correct_cursor_position(self):
         """Move cursor to assert that current ship position fits in the grid"""
-        ship_end = self.current_ship + (  # type: ignore
+        assert self.current_ship is not None
+        ship_end = self.current_ship + (
             self.cursor.row if self.direction == "v" else self.cursor.col
         )
         if ship_end > self.player_grid.grid_size:
@@ -70,7 +73,7 @@ class Setup(Phase):
             else:
                 self.cursor.col -= ship_end - self.player_grid.grid_size
 
-    def move_ship(self, direction):
+    def move_ship(self, direction: str):
         """Moves the ship in the specified direction"""
         self.cursor.move(direction, self.player_grid.grid_size)
         self.correct_cursor_position()
@@ -82,9 +85,11 @@ class Setup(Phase):
         self.correct_cursor_position()
         self.get_ship_position()
 
-    def move(self, direction):
+    @override
+    def move(self, direction: str):
         self.move_ship(direction)
 
+    @override
     def confirm(self):
         # Try to place ship
         if not place_ship(self.player_grid, self.position):
@@ -99,13 +104,15 @@ class Setup(Phase):
 
         self.get_ship_position()
 
-    def handle_extra_events(self, event):
+    @override
+    def handle_extra_events(self, event: pygame.event.EventType):
         # Rotation keybind
         if event.key == pygame.K_r:
             self.rotate_ship()
 
-    def draw(self, cursor_pos=0):  # Draw cursor at the player grid (left)
-        super().draw(cursor_pos=cursor_pos)
+    @override
+    def draw(self, cursor_grid: int = 0):  # Draw cursor at the player grid (left)
+        super().draw(cursor_grid=cursor_grid)
 
     def next_phase(self):
         """Return a new Game phase instance"""

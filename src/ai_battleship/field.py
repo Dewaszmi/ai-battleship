@@ -12,16 +12,16 @@ class Field:
     status: str = (
         "unknown"  # possible statuses = "unknown, ship, miss, hit, sunk, empty"
     )
-    color: tuple = field(
+    color: tuple[int, int, int] = field(
         init=False
     )  # colors dependent on status, optionally overriden by highlights
 
     def __post_init__(self):
         self.set_color()
 
-    def set_color(self, color=None):
+    def set_color(self, color: tuple[int, int, int] | None = None):
         """Set default color unless specifically passed"""
-        self.color = color if color else FIELD_COLORS[self.status]
+        self.color = color if color is not None else FIELD_COLORS[self.status]
 
     def set_status(self, status: str):
         """Update status and color"""
