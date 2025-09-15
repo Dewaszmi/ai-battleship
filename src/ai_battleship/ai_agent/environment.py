@@ -28,11 +28,20 @@ class AgentEnvironment:
     def step(self, action: tuple[int, int]):  # action = (row, col)
         """Return the data after performing a chosen action"""
         row, col = action
-        valid: bool = shoot(self.grid, self.grid[row, col])
+        target = self.grid[row, col]
+        valid: bool = shoot(self.grid, target)
         if not valid:
             reward = -1.0
         else:
-            reward = 1.0
+            status = target.status
+            if status == "miss":
+                reward = -0.1
+            elif status == "hit":
+                reward = 1.0
+            elif status == "sunk":
+                reward = 3.0
+            else:
+                raise ValueError("Invalid target status")
 
         # Check if all ships sunk
         self.done = all(

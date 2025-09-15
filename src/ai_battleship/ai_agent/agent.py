@@ -32,20 +32,29 @@ class Agent:
     ) -> tuple[int, int]:
         """epsilon-greedy action selection"""
         if random.random() < epsilon:
-            # random action
             return random.randrange(self.grid_size), random.randrange(self.grid_size)
 
         with torch.no_grad():
-            q_values = self.model(state.unsqueeze(0).to(self.device))  # [1, H*W]
+            state = state.unsqueeze(0).to(self.device)  # [1, C, H, W]
+            q_values = self.model(state)
             action_idx = q_values.argmax(dim=1).item()
-        row, col = divmod(action_idx, self.grid_size)
-        return row, col
+        return divmod(action_idx, self.grid_size)
 
     def add_to_memory(
         self,
         transition: tuple[torch.Tensor, tuple[int, int], float, torch.Tensor, bool],
     ):
-        self.memory.append(transition)
+        # store everything on device
+        state, action, reward, next_state, done = transition
+        self.memory.append(
+            (
+                state.to(self.device),
+                action,
+                float(reward),
+                next_state.to(self.device),
+                bool(done),
+            )
+        )
 
     def train_step(self, batch_size: int = 64):
         if len(self.memory) < batch_size:
@@ -59,13 +68,12 @@ class Agent:
         rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device)
         dones = torch.tensor(dones, dtype=torch.float32, device=self.device)
 
-        # flatten action indices
+        # Flatten action indices
         action_indices = [r * self.grid_size + c for (r, c) in actions]
         action_indices = torch.tensor(action_indices, device=self.device)
 
         # Q(s, a)
-        q_values = self.model(states)  # [B, H*W]
-        q_values = q_values.gather(1, action_indices.unsqueeze(1)).squeeze(1)
+        q_values = self.model(states).gather(1, action_indices.unsqueeze(1)).squeeze(1)
 
         # Target Q
         with torch.no_grad():

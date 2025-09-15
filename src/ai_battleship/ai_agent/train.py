@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import pygame
 import torch
@@ -57,9 +59,13 @@ def draw_visualisation(
 
     # --- RIGHT GRID: Q-value heatmap ---
     with torch.no_grad():
-        q_values = agent.model(state.unsqueeze(0))  # add batch dim
-    q_map = q_values.squeeze(0).view(grid_size, grid_size).cpu().numpy()
-
+        q_map = (
+            agent.model(state.unsqueeze(0))
+            .squeeze(0)
+            .view(grid_size, grid_size)
+            .cpu()
+            .numpy()
+        )
     q_min, q_max = np.min(q_map), np.max(q_map)
     norm_q = (q_map - q_min) / (q_max - q_min + 1e-8)  # normalize 0-1
 
@@ -82,16 +88,17 @@ def draw_visualisation(
 
 
 def train(
-    episodes: int = 500,
+    episodes: int = 2000,  # 500
     batch_size: int = 64,
     epsilon_start: float = 1.0,
     epsilon_end: float = 0.05,
-    epsilon_decay: float = 0.995,
+    epsilon_decay: float = 0.997,  # 0.995,
     target_update: int = 10,
-    device: str = "cpu",
 ):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     env = AgentEnvironment()
     agent = Agent(grid_size=env.grid_size, device=device)
+    torch.backends.cudnn.benchmark = True  # optimize performance for fixed input sizes
 
     epsilon = epsilon_start
 
@@ -102,8 +109,10 @@ def train(
     screen = pygame.display.set_mode((width, height))
     pygame.display.set_caption("Battleship AI Visualisation")
 
+    current_time = time.time()
+
     for episode in range(episodes):
-        state = env.reset()
+        state = env.reset().to(device)
         total_reward = 0.0
 
         while not env.done:
@@ -112,6 +121,7 @@ def train(
 
             # environment step
             next_state, reward, done = env.step(action)
+            next_state = next_state.to(device)
 
             # store transition
             agent.add_to_memory((state, action, reward, next_state, done))
@@ -121,10 +131,10 @@ def train(
 
             state = next_state
             total_reward += reward
-            if episode % VISUALISE_INTERVAL == 0 and episode >= 300:
-                draw_visualisation(screen, env.grid, agent, state, hitmarker=action)
-                print(f"Reward: {reward}, total reward: {total_reward}")
-                pygame.time.delay(500)
+            # if episode % VISUALISE_INTERVAL == 0 and episode >= 1500:
+            #     draw_visualisation(screen, env.grid, agent, state, hitmarker=action)
+            #     # print(f"Reward: {reward}, total reward: {total_reward}")
+            #     pygame.time.delay(50)
 
         # decay epsilon
         epsilon = max(epsilon_end, epsilon * epsilon_decay)
@@ -137,6 +147,9 @@ def train(
             print(
                 f"Episode {episode+1}/{episodes}, Reward: {total_reward:.2f}, Epsilon: {epsilon:.3f}"
             )
+            elapsed = time.time() - current_time
+            # print(f"Time: {elapsed:.2f}")
+            current_time = time.time()
 
 
 if __name__ == "__main__":
