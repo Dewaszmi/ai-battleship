@@ -44,8 +44,7 @@ class AgentEnvironment:
     def get_state_from_grid(grid: Grid) -> torch.Tensor:
         """Return grid as a multi-channel tensor for the CNN."""
         status_list = [
-            "unknown",  # unshot field
-            "ship",  # unshot ship field
+            "unknown_or_ship",  # unshot field
             "miss",  # missed field
             "hit",  # hit but not sunk ship field
             "sunk",  # sunk ship field
@@ -59,7 +58,12 @@ class AgentEnvironment:
         # Initialize tensor [channels, H, W]
         state = torch.zeros((len(status_list), H, W), dtype=torch.float32)
 
-        for i, status in enumerate(status_list):
-            state[i] = torch.from_numpy((statuses == status).astype(np.float32))
+        state[0] = torch.from_numpy(
+            ((statuses == "unknown") | (statuses == "ship")).astype(np.float32)
+        )
+        state[1] = torch.from_numpy((statuses == "miss").astype(np.float32))
+        state[2] = torch.from_numpy((statuses == "hit").astype(np.float32))
+        state[3] = torch.from_numpy((statuses == "sunk").astype(np.float32))
+        state[4] = torch.from_numpy((statuses == "empty").astype(np.float32))
 
-        return state  # shape: [channels=6, H, W]
+        return state  # shape: [channels=5, H, W]

@@ -1,3 +1,4 @@
+import numpy as np
 import pygame
 import torch
 
@@ -14,20 +15,23 @@ def draw_visualisation(
     grid: Grid,
     agent: Agent,
     state: torch.Tensor,
-    hitmarker: tuple[int, int],
+    hitmarker: tuple[int, int] | None = None,
 ):
-    """Draw the game grid and a heatmap of Q-values side by side."""
+    """
+    Draw the game grid (left) and a Q-value heatmap (right) side by side.
+    - agent: your Agent object (used to compute Q-values)
+    - state: current state tensor [C, H, W]
+    """
     screen.fill((0, 0, 0))
-    grid_size = grid.grid_size
+    grid_size: int = grid.grid_size
 
-    # --- Left: normal game grid ---
-    offset_x = 0
+    # --- LEFT GRID: normal game ---
     for row in range(grid_size):
         for col in range(grid_size):
             field = grid[row, col]
             color = field.color
             rect = pygame.Rect(
-                offset_x + col * (CELL_SIZE + MARGIN) + MARGIN,
+                col * (CELL_SIZE + MARGIN) + MARGIN,
                 row * (CELL_SIZE + MARGIN) + MARGIN,
                 CELL_SIZE,
                 CELL_SIZE,
@@ -35,51 +39,44 @@ def draw_visualisation(
             pygame.draw.rect(screen, color, rect)
             pygame.draw.rect(screen, (255, 255, 255), rect, 1)
 
-            row, col = hitmarker
-            rect = pygame.Rect(
-                offset_x + col * (CELL_SIZE + MARGIN) + MARGIN,
-                row * (CELL_SIZE + MARGIN) + MARGIN,
-                CELL_SIZE,
-                CELL_SIZE,
-            )
-            pygame.draw.line(
-                screen,
-                (0, 255, 0),
-                (rect.left, rect.top),
-                (rect.right, rect.bottom),
-                4,
-            )
-            pygame.draw.line(
-                screen,
-                (0, 255, 0),
-                (rect.left, rect.bottom),
-                (rect.right, rect.top),
-                4,
-            )
+    # Hitmarker on left grid
+    if hitmarker:
+        row, col = hitmarker
+        rect = pygame.Rect(
+            col * (CELL_SIZE + MARGIN) + MARGIN,
+            row * (CELL_SIZE + MARGIN) + MARGIN,
+            CELL_SIZE,
+            CELL_SIZE,
+        )
+        pygame.draw.line(
+            screen, (0, 255, 0), (rect.left, rect.top), (rect.right, rect.bottom), 4
+        )
+        pygame.draw.line(
+            screen, (0, 255, 0), (rect.left, rect.bottom), (rect.right, rect.top), 4
+        )
 
-    # --- Right: heatmap from Q-values ---
-    offset_x = grid_size * (CELL_SIZE + MARGIN) + MARGIN + 20
+    # --- RIGHT GRID: Q-value heatmap ---
     with torch.no_grad():
-        q_values = agent.model(state.unsqueeze(0).to(agent.device))[0]  # [H*W]
-    q_map = q_values.view(grid_size, grid_size).cpu().numpy()
+        q_values = agent.model(state.unsqueeze(0))  # add batch dim
+    q_map = q_values.squeeze(0).view(grid_size, grid_size).cpu().numpy()
 
-    # Normalize for colormap [0..1]
-    q_min, q_max = q_map.min(), q_map.max()
-    norm = (q_map - q_min) / (q_max - q_min + 1e-8)
+    q_min, q_max = np.min(q_map), np.max(q_map)
+    norm_q = (q_map - q_min) / (q_max - q_min + 1e-8)  # normalize 0-1
 
+    offset_x = (CELL_SIZE + MARGIN) * grid_size
     for row in range(grid_size):
         for col in range(grid_size):
-            val = norm[row, col]
-            # map value → color (blue→red)
-            color = (int(255 * val), 0, int(255 * (1 - val)))
+            intensity = int(255 * norm_q[row, col])
+            color = (intensity, 0, 255 - intensity)  # red=high, blue=low
             rect = pygame.Rect(
                 offset_x + col * (CELL_SIZE + MARGIN) + MARGIN,
                 row * (CELL_SIZE + MARGIN) + MARGIN,
                 CELL_SIZE,
                 CELL_SIZE,
             )
-            pygame.draw.rect(screen, color, rect)
-            pygame.draw.rect(screen, (255, 255, 255), rect, 1)
+            s = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
+            s.fill((*color, 150))  # semi-transparent
+            screen.blit(s, (rect.x, rect.y))
 
     pygame.display.flip()
 
@@ -124,8 +121,10 @@ def train(
 
             state = next_state
             total_reward += reward
-            if episode % VISUALISE_INTERVAL == 0:
-                draw_visualisation(screen, env.grid, agent, state, action)
+            if episode % VISUALISE_INTERVAL == 0 and episode >= 300:
+                draw_visualisation(screen, env.grid, agent, state, hitmarker=action)
+                print(f"Reward: {reward}, total reward: {total_reward}")
+                pygame.time.delay(500)
 
         # decay epsilon
         epsilon = max(epsilon_end, epsilon * epsilon_decay)

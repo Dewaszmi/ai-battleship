@@ -5,7 +5,7 @@ import torch.nn as nn
 
 
 class CNN(nn.Module):
-    def __init__(self, grid_size: int, in_channels: int = 6, hidden_dim: int = 128):
+    def __init__(self, grid_size: int, in_channels: int = 5, hidden_dim: int = 128):
         super().__init__()
         self.grid_size = grid_size
         self.output_dim = grid_size * grid_size

@@ -18,12 +18,16 @@ SHIPS_DICT = {4: 1}
 
 # Field colors
 FIELD_COLORS = {
-    "empty": (128, 128, 255),  # blue
+    "unknown": (128, 128, 255),  # blue
     "ship": (128, 128, 128),  # gray
     "hit": (255, 165, 0),  # orange
     "miss": (192, 192, 192),  # light gray
     "sunk": (64, 64, 64),  # dark gray
-    "unknown": (128, 128, 255),  # blue (same as "empty")
+    "empty": (
+        192,
+        192,
+        192,
+    ),  # light gray (same as "miss")
 }
 
 # Field highlight colors
