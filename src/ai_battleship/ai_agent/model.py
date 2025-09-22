@@ -1,32 +1,39 @@
-from typing import override
-
 import torch
 import torch.nn as nn
 
 
-class CNN(nn.Module):
-    def __init__(self, grid_size: int, in_channels: int = 5, hidden_dim: int = 512):
+class ActorCritic(nn.Module):
+    def __init__(self, in_channels: int, grid_size: int, hidden_dim: int = 256):
         super().__init__()
         self.grid_size = grid_size
-        self.output_dim = grid_size * grid_size
-
         self.conv = nn.Sequential(
-            nn.Conv2d(in_channels, 32, kernel_size=3, padding=1),  # [32, H, W]
+            nn.Conv2d(in_channels, 32, 3, padding=1),
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),  # [64, H, W]
+            nn.Conv2d(32, 64, 3, padding=1),
             nn.ReLU(),
-        )
-
-        self.fc = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(64 * grid_size * grid_size, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, self.output_dim),  # Q-values
         )
+        conv_out = 64 * grid_size * grid_size
+        self.fc = nn.Sequential(nn.Linear(conv_out, hidden_dim), nn.ReLU())
+        self.policy = nn.Linear(hidden_dim, grid_size * grid_size)
+        self.value = nn.Linear(hidden_dim, 1)
 
-    @override
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: [B, C=6, H, W]
+    def forward(self, x):
         x = self.conv(x)
         x = self.fc(x)
-        return x  # [B, H*W]
+        logits = self.policy(x)
+        value = self.value(x).squeeze(-1)
+        return logits, value
+
+    def act(self, x):
+        logits, value = self.forward(x)
+        dist = torch.distributions.Categorical(logits=logits)
+        a = dist.sample()
+        return a, dist.log_prob(a), value, dist.entropy()
+
+    def get_logp_value_entropy(self, x, actions):
+        logits, value = self.forward(x)
+        dist = torch.distributions.Categorical(logits=logits)
+        logp = dist.log_prob(actions)
+        ent = dist.entropy()
+        return logp, value, ent

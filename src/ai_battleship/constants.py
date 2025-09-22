@@ -17,7 +17,6 @@ SHIPS_DICT = {
     4: 1,
     3: 1,
 }
-# SHIPS_DICT = {4: 1}
 
 # Field colors
 FIELD_COLORS = {
