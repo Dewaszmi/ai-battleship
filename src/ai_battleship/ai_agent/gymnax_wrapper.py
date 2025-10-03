@@ -1,18 +1,10 @@
-# gymnax_wrapper.py
-from typing import NamedTuple
-
-import jax
-import jax.numpy as jnp
-from gymnax_env import (
-    GRID_SIZE,
-    BattleshipState,
-    get_obs_from_grid,
-    reset_vec,
-    step_vec,
-)
+from ai_battleship.ai_agent.environment import reset_vec, step_vec
+from ai_battleship.constants import GRID_SIZE
 
 
 class BattleshipGymnax:
+    """Gymnax compatible wrapper for Battleship environment"""
+
     def __init__(self, num_envs=8):
         self.num_envs = num_envs
         self.num_actions = GRID_SIZE * GRID_SIZE
@@ -24,5 +16,19 @@ class BattleshipGymnax:
 
     def step(self, rng, states, actions, params=None):
         obs, new_states, rewards, dones = step_vec(states, actions)
-        info = {}  # Gymnax expects an info dict
+        info = {}
         return obs, new_states, rewards, dones, info
+
+    def action_space(self, params=None):
+        class ActionSpace:
+            def __init__(self, n):
+                self.n = n
+
+        return ActionSpace(self.num_actions)
+
+    def observation_space(self, params=None):
+        class ObservationSpace:
+            def __init__(self, shape):
+                self.shape = shape
+
+        return ObservationSpace(self.obs_shape)

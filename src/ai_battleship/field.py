@@ -10,7 +10,7 @@ class Field:
     row: int
     col: int
     status: str = (
-        "unknown"  # possible statuses = "unknown, ship, miss, hit, sunk, empty"
+        "unknown"  # possible statuses = "unknown, ship, hit, miss, sunk, empty"
     )
     color: tuple[int, int, int] = field(
         init=False

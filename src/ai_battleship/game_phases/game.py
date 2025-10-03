@@ -5,10 +5,8 @@ from time import sleep
 from typing import final, override
 
 import pygame
-import torch
 
 from ai_battleship.ai_agent.agent import Agent
-from ai_battleship.ai_agent.environment import AgentEnvironment
 from ai_battleship.constants import HIGHLIGHT_COLORS
 from ai_battleship.game_phases.base import Cursor, Phase
 from ai_battleship.utils.grid_utils import *
@@ -25,12 +23,7 @@ class Game(Phase):
 
     def __post_init__(self):
         # Prepare the AI agent
-        self.agent = Agent(grid_size=self.player_grid.grid_size)
-        self.agent.model.load_state_dict(
-            torch.load("battleship_model.pth", map_location=self.agent.device)
-        )
-        self.agent.model.to(self.agent.device)
-        self.agent.model.eval()
+        self.agent = Agent(model_path="battleship_model.msgpack")
 
         self.turn = choice([0, 1])
         starting_player = "player" if self.turn == 0 else "ai"
@@ -41,8 +34,7 @@ class Game(Phase):
     def ai_turn(self):
         sleep(0.3)
         # Convert player grid into a tensor
-        state = AgentEnvironment.get_state_from_grid(self.player_grid)
-        row, col = self.agent.select_action(state)
+        row, col = self.agent.select_action(self.player_grid)
         target = self.player_grid[row, col]
         self.hitmarker = (row, col)  # add visible indicator for where the ai has shot
         print(f"ai chose: {row}, {col} with state: {target.status}")

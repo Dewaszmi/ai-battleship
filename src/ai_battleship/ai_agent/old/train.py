@@ -1,9 +1,9 @@
 import pygame
 import torch
 
-from ai_battleship.ai_agent.agent import Agent, RolloutBuffer
-from ai_battleship.ai_agent.environment import AgentEnvironment
-from ai_battleship.ai_agent.model import ActorCritic
+from ai_battleship.ai_agent.old.agent import Agent, RolloutBuffer
+from ai_battleship.ai_agent.old.environment import AgentEnvironment
+from ai_battleship.ai_agent.old.model import ActorCritic
 from ai_battleship.constants import *
 
 VISUALISE_INTERVAL = 50

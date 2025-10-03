@@ -1,3 +1,5 @@
+# Implementation borrowed from https://github.com/luchris429/purejaxrl, with a tiny modification to make_train() function to allow passing custom environments
+
 from typing import Any, NamedTuple, Sequence
 
 import distrax
@@ -9,7 +11,8 @@ import numpy as np
 import optax
 from flax.linen.initializers import constant, orthogonal
 from flax.training.train_state import TrainState
-from wrappers import FlattenObservationWrapper, LogWrapper
+
+# from .wrappers import FlattenObservationWrapper, LogWrapper
 
 
 class ActorCritic(nn.Module):
@@ -60,16 +63,22 @@ class Transition(NamedTuple):
     info: jnp.ndarray
 
 
-def make_train(config):
+# expanded make_train to accept custom gymnax environments
+def make_train(config, env=None):
     config["NUM_UPDATES"] = (
         config["TOTAL_TIMESTEPS"] // config["NUM_STEPS"] // config["NUM_ENVS"]
     )
     config["MINIBATCH_SIZE"] = (
         config["NUM_ENVS"] * config["NUM_STEPS"] // config["NUM_MINIBATCHES"]
     )
-    env, env_params = gymnax.make(config["ENV_NAME"])
-    env = FlattenObservationWrapper(env)
-    env = LogWrapper(env)
+    if env is None:
+        from .wrappers import FlattenObservationWrapper, LogWrapper
+
+        env, env_params = gymnax.make(config["ENV_NAME"])
+        env = FlattenObservationWrapper(env)
+        env = LogWrapper(env)
+    else:
+        env_params = None
 
     def linear_schedule(count):
         frac = (

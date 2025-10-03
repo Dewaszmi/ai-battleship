@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from ai_battleship.ai_agent.model import ActorCritic
+from ai_battleship.ai_agent.old.model import ActorCritic
 
 
 class RolloutBuffer:
