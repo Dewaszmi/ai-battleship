@@ -2,10 +2,10 @@
 
 ## Implementation of the Battleship board game which places the player against an AI model trained via reinforcement learning methods.
 
+
+
 ### Agent training
 Utilises [JAX](https://github.com/jax-ml/jax), specifically [PureJaxRL fork's PPO implementation](https://github.com/luchris429/purejaxrl)
-
-I originally wrote the RL code in PyTorch, but the training process took a very long time for bigger grid sizes, it has a pretty visualisation though so for legacy reasons it's accessible at the latest commit of "agent" branch.
 
 ```
 @article{lu2022discovered,
@@ -17,3 +17,5 @@ I originally wrote the RL code in PyTorch, but the training process took a very 
     year={2022}
 }
 ```
+
+I originally wrote the RL code in PyTorch, but the training process took a very long time for bigger grid sizes, it has a pretty visualisation though so for legacy reasons it's accessible at the latest commit of "agent" branch.
