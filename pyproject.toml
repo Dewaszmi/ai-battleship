@@ -13,9 +13,3 @@ scripts = { "ai-battleship" = "ai_battleship.main:main" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.basedpyright]
-reportUnusedCallResult = "none"
-reportUnannotatedClassAttribute = "none"
-reportAny = "none"
-reportUnknownMemberType = "none"
