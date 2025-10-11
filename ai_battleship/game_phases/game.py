@@ -6,9 +6,9 @@ from typing import final, override
 
 import pygame
 
-from ai_battleship.ai_agent.agent import Agent
 from ai_battleship.constants import HIGHLIGHT_COLORS
 from ai_battleship.game_phases.base import Cursor, Phase
+from ai_battleship.rl.agent import Agent
 from ai_battleship.utils.grid_utils import *
 
 
@@ -46,9 +46,7 @@ class Game(Phase):
     def check_victory(self):
         """Check if the game has finished"""
         target_grid = self.ai_grid if self.turn == 0 else self.player_grid
-        living_ship_fields = [
-            f for f in chain.from_iterable(target_grid.ships) if f.status == "ship"
-        ]
+        living_ship_fields = [f for f in chain.from_iterable(target_grid.ships) if f.status == "ship"]
         if not living_ship_fields:
             # No ship tiles left on the target grid
             ending_prompt = "WIN" if self.turn == 0 else "LOSS"
@@ -89,9 +87,7 @@ class Game(Phase):
                 self.handle_turn()
 
     @override
-    def handle_extra_events(
-        self, event: pygame.event.EventType
-    ):  # No additional keybinds for Game phase
+    def handle_extra_events(self, event: pygame.event.EventType):  # No additional keybinds for Game phase
         pass
 
     @override

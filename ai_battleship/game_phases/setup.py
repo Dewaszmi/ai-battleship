@@ -18,9 +18,7 @@ class Setup(Phase):
     current_ship: int | None = field(init=False)
     direction: str = field(init=False)  # 'v' - vertical, 'h' - horizontal
     ships_queue: deque[int] = field(
-        default_factory=lambda: deque(
-            [k for k, v in SHIPS_DICT.items() for _ in range(v)]
-        )
+        default_factory=lambda: deque([k for k, v in SHIPS_DICT.items() for _ in range(v)])
     )
     position: list[Field] = field(default_factory=list)
     allowed_fields: list[Field] = field(init=False)
@@ -64,9 +62,7 @@ class Setup(Phase):
     def correct_cursor_position(self):
         """Move cursor to assert that current ship position fits in the grid"""
         assert self.current_ship is not None
-        ship_end = self.current_ship + (
-            self.cursor.row if self.direction == "v" else self.cursor.col
-        )
+        ship_end = self.current_ship + (self.cursor.row if self.direction == "v" else self.cursor.col)
         if ship_end > self.player_grid.grid_size:
             if self.direction == "v":
                 self.cursor.row -= ship_end - self.player_grid.grid_size
@@ -116,6 +112,4 @@ class Setup(Phase):
 
     def next_phase(self):
         """Return a new Game phase instance"""
-        return Game(
-            screen=self.screen, player_grid=self.player_grid, ai_grid=self.ai_grid
-        )
+        return Game(screen=self.screen, player_grid=self.player_grid, ai_grid=self.ai_grid)

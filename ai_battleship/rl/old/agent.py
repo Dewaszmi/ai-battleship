@@ -1,16 +1,14 @@
 import numpy as np
 import torch
 
-from ai_battleship.ai_agent.old.model import ActorCritic
+from ai_battleship.rl.old.model import ActorCritic
 
 
 class RolloutBuffer:
     def __init__(self, capacity, obs_shape, device):
         self.device = device
         self.capacity = capacity
-        self.obs = torch.zeros(
-            (capacity, *obs_shape), dtype=torch.float32, device=device
-        )
+        self.obs = torch.zeros((capacity, *obs_shape), dtype=torch.float32, device=device)
         self.actions = torch.zeros((capacity,), dtype=torch.long, device=device)
         self.logps = torch.zeros((capacity,), dtype=torch.float32, device=device)
         self.rewards = torch.zeros((capacity,), dtype=torch.float32, device=device)
@@ -79,9 +77,7 @@ class Agent:
 
     def update(self, buffer: RolloutBuffer, epochs: int = 4, batch_size: int = 32):
         for _ in range(epochs):
-            for obs_b, actions_b, old_logp_b, returns_b, adv_b in buffer.get_batches(
-                batch_size
-            ):
+            for obs_b, actions_b, old_logp_b, returns_b, adv_b in buffer.get_batches(batch_size):
                 obs_b = obs_b.to(self.device)
                 actions_b = actions_b.to(self.device)
                 old_logp_b = old_logp_b.to(self.device)
@@ -91,18 +87,12 @@ class Agent:
                 logp, value, ent = self.model.get_logp_value_entropy(obs_b, actions_b)
                 ratio = torch.exp(logp - old_logp_b)
                 surr1 = ratio * adv_b
-                surr2 = (
-                    torch.clamp(ratio, 1.0 - self.clip_eps, 1.0 + self.clip_eps) * adv_b
-                )
+                surr2 = torch.clamp(ratio, 1.0 - self.clip_eps, 1.0 + self.clip_eps) * adv_b
                 policy_loss = -torch.min(surr1, surr2).mean()
                 value_loss = (returns_b - value).pow(2).mean()
                 entropy_loss = -ent.mean()
 
-                loss = (
-                    policy_loss
-                    + self.value_coef * value_loss
-                    + self.ent_coef * entropy_loss
-                )
+                loss = policy_loss + self.value_coef * value_loss + self.ent_coef * entropy_loss
 
                 self.optimizer.zero_grad()
                 loss.backward()

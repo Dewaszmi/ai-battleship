@@ -1,5 +1,5 @@
 # Grid stats
-GRID_SIZE = 5
+GRID_SIZE = 3
 # GRID_SIZE = 5
 CELL_SIZE = 40
 MARGIN = 3
@@ -14,7 +14,7 @@ GRID_HEIGHT = CELL_SIZE * GRID_SIZE
 #     2: 1,
 # }
 SHIPS_DICT = {
-    4: 1,
+    # 4: 1,
     3: 1,
 }
 
