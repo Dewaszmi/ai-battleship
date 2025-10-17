@@ -2,15 +2,16 @@ from dataclasses import dataclass, field
 from itertools import chain
 from random import choice
 from time import sleep
+import torch
 from typing import final
 from typing_extensions import override # for older python
-
 
 import pygame
 
 from ai_battleship.constants import HIGHLIGHT_COLORS
 from ai_battleship.game_phases.base import Cursor, Phase
-from ai_battleship.ai.agent import Agent
+from ai_battleship.ai.ppo import Agent
+from ai_battleship.envs.battleship_env_gym import BattleshipEnv
 from ai_battleship.utils.grid_utils import *
 
 
@@ -25,12 +26,10 @@ class Game(Phase):
 
     def __post_init__(self):
         # Prepare the AI agent
-        self.agent = Agent(grid_size=self.player_grid.grid_size)
-        self.agent.model.load_state_dict(
-            torch.load("battleship_model.pth", map_location=self.agent.device)
-        )
-        self.agent.model.to(self.agent.device)
-        self.agent.model.eval()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.agent = Agent(envs=None).to(self.device)
+        self.agent.load_state_dict(torch.load("models/model.pth", map_location=self.device))
+        self.agent.eval()
 
         self.turn = choice([0, 1])
         starting_player = "player" if self.turn == 0 else "ai"
@@ -41,12 +40,18 @@ class Game(Phase):
     def ai_turn(self):
         sleep(0.3)
         # Convert player grid into a tensor
-        row, col = self.agent.select_action(self.player_grid)
+        state_tensor = BattleshipEnv.get_state_from_grid(self.player_grid)
+        state_tensor = torch.tensor(state_tensor, dtype=torch.float32).to(self.device)
+
+        action, _, _, _ = self.agent.get_action_and_value(state_tensor)
+        action_idx = action.item()
+        row, col = divmod(action_idx, self.player_grid.grid_size)
+
         target = self.player_grid[row, col]
         self.hitmarker = (row, col)  # add visible indicator for where the ai has shot
-        print(f"ai chose: {row}, {col} with state: {target.status}")
-        if not is_valid_target(target):
-            print("ai has chosen an invalid target!")
+        # print(f"ai chose: {row}, {col} with state: {target.status}")
+        # if not is_valid_target(target):
+        #     print("ai has chosen an invalid target!")
 
         shoot(self.player_grid, target)
 

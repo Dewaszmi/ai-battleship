@@ -32,7 +32,7 @@ class BattleshipEnv(gym.Env):
         ships_queue = deque([k for k, v in SHIPS_DICT.items() for _ in range(v)])
         self.grid = generate_random_grid(ships_queue)
         self.done = False
-        state = self._get_state_from_grid(self.grid)
+        state = self.get_state_from_grid(self.grid)
         info = {}
         return state, info
 
@@ -45,12 +45,12 @@ class BattleshipEnv(gym.Env):
         self.done = all(all(f.status == "sunk" for f in ship) for ship in self.grid.ships)
         reward = -0.01
 
-        observation = self._get_state_from_grid(self.grid)
+        observation = self.get_state_from_grid(self.grid)
         info = {}
         return observation, reward, self.done, False, info  # (obs, reward, terminated, truncated, info)
 
     @staticmethod
-    def _get_state_from_grid(grid: Grid) -> torch.Tensor:
+    def get_state_from_grid(grid: Grid) -> torch.Tensor:
         H, W = grid.grid_size, grid.grid_size
         statuses = np.array([[f.status for f in row] for row in grid.fields])
         state = np.zeros((3, H, W), dtype=np.float32)
