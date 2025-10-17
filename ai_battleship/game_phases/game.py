@@ -2,13 +2,15 @@ from dataclasses import dataclass, field
 from itertools import chain
 from random import choice
 from time import sleep
-from typing import final, override
+from typing import final
+from typing_extensions import override # for older python
+
 
 import pygame
 
 from ai_battleship.constants import HIGHLIGHT_COLORS
 from ai_battleship.game_phases.base import Cursor, Phase
-from ai_battleship.rl.agent import Agent
+from ai_battleship.ai.agent import Agent
 from ai_battleship.utils.grid_utils import *
 
 
@@ -23,7 +25,12 @@ class Game(Phase):
 
     def __post_init__(self):
         # Prepare the AI agent
-        self.agent = Agent(model_path="battleship_model.msgpack")
+        self.agent = Agent(grid_size=self.player_grid.grid_size)
+        self.agent.model.load_state_dict(
+            torch.load("battleship_model.pth", map_location=self.agent.device)
+        )
+        self.agent.model.to(self.agent.device)
+        self.agent.model.eval()
 
         self.turn = choice([0, 1])
         starting_player = "player" if self.turn == 0 else "ai"

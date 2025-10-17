@@ -19,3 +19,11 @@ Utilises [JAX](https://github.com/jax-ml/jax), specifically [PureJaxRL fork's PP
 ```
 
 I originally wrote the RL code in PyTorch, but the training process took a very long time for bigger grid sizes, it has a pretty visualisation though so for legacy reasons it's accessible at the latest commit of "agent" branch.
+
+
+uv venv
+uv pip install -e . / uv sync
+python src/ai_battleship/ai/ppo.py --seed 1 --env-id Battleship-v0 --total-timesteps 500000
+
+alternatively
+pip install -r requirements.txt

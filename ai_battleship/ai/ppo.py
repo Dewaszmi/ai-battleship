@@ -15,8 +15,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 import ai_battleship.envs
 
-print(gym.envs.registry.keys())
-
 
 @dataclass
 class Args:
@@ -32,7 +30,7 @@ class Args:
     """if toggled, this experiment will be tracked with Weights and Biases"""
     wandb_project_name: str = "cleanRL"
     """the wandb's project name"""
-    wandb_entity: str = None
+    wandb_entity: str | None = None
     """the entity (team) of wandb's project"""
     capture_video: bool = False
     """whether to capture videos of the agent performances (check out `videos` folder)"""
@@ -70,7 +68,7 @@ class Args:
     """coefficient of the value function"""
     max_grad_norm: float = 0.5
     """the maximum norm for the gradient clipping"""
-    target_kl: float = None
+    target_kl: float | None = None
     """the target KL divergence threshold"""
 
     # to be filled in runtime
@@ -329,3 +327,10 @@ if __name__ == "__main__":
 
     envs.close()
     writer.close()
+    
+    # save trained model
+    model_path = f"models/{run_name}.pth"
+    os.makedirs("models", exist_ok=True)
+
+    torch.save(agent.state_dict(), model_path)
+    print(f"Model saved to {model_path}")

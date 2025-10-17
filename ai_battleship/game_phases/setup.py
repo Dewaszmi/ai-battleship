@@ -1,6 +1,7 @@
 from collections import deque
 from dataclasses import dataclass, field
-from typing import override
+from typing_extensions import override # for older python
+
 
 import pygame
 
