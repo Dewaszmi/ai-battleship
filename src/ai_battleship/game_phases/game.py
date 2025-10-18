@@ -13,6 +13,14 @@ from ai_battleship.game_phases.base import Cursor, Phase
 from ai_battleship.ai.ppo import Agent
 from ai_battleship.envs.battleship_env_gym import BattleshipEnv
 from ai_battleship.utils.grid_utils import *
+from gymnasium.vector import SyncVectorEnv
+
+def EnvWrapper():
+    """Wrapper to create vectorized battleship environments compatible with ppo code"""
+    def make_env():
+        return BattleshipEnv()
+    return SyncVectorEnv([make_env])
+
 
 
 @final
@@ -27,10 +35,12 @@ class Game(Phase):
     def __post_init__(self):
         # Prepare the AI agent
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.agent = Agent(envs=None).to(self.device)
-        self.agent.load_state_dict(torch.load("models/model.pth", map_location=self.device))
+        envs = EnvWrapper()
+        self.agent = Agent(envs=envs).to(self.device)
+        self.agent.load_state_dict(torch.load("models/battleship_model.pth", map_location=self.device, weights_only=True))
         self.agent.eval()
 
+        # Start game
         self.turn = choice([0, 1])
         starting_player = "player" if self.turn == 0 else "ai"
         print(f"Starting player: {starting_player}")
@@ -40,12 +50,13 @@ class Game(Phase):
     def ai_turn(self):
         sleep(0.3)
         # Convert player grid into a tensor
-        state_tensor = BattleshipEnv.get_state_from_grid(self.player_grid)
-        state_tensor = torch.tensor(state_tensor, dtype=torch.float32).to(self.device)
+        state = BattleshipEnv.get_state_from_grid(self.player_grid)
+        state_tensor = torch.from_numpy(state).float().to(self.device)
 
-        action, _, _, _ = self.agent.get_action_and_value(state_tensor)
+        action, _, _, _ = self.agent.get_action_and_value(state_tensor, deterministic=True)
         action_idx = action.item()
-        row, col = divmod(action_idx, self.player_grid.grid_size)
+        row = action_idx // self.player_grid.grid_size
+        col = action_idx % self.player_grid.grid_size
 
         target = self.player_grid[row, col]
         self.hitmarker = (row, col)  # add visible indicator for where the ai has shot
@@ -67,7 +78,9 @@ class Game(Phase):
 
     def move_cursor(self, direction: str):
         """Move cursor in the specified direction and set highlight accordingly"""
-        clear_highlights(self.ai_grid)
+        # clear old highlight
+        target = self.ai_grid[self.cursor.row, self.cursor.col]
+        target.set_color(FIELD_COLORS["unknown"] if target.status == "ship" else None)
 
         self.cursor.move(direction, grid_size=self.ai_grid.grid_size)
         new_target = self.ai_grid[self.cursor.row, self.cursor.col]
@@ -90,7 +103,7 @@ class Game(Phase):
         """Handle player turn"""
         if not self.done:
             shoot(
-                self.ai_grid, self.ai_grid[self.cursor.col, self.cursor.row]
+                self.ai_grid, self.ai_grid[self.cursor.row, self.cursor.col]
             )  # (allows shooting invalid targets by the player to match ai capabilities)
             self.check_victory()
             self.draw()

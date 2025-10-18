@@ -1,5 +1,5 @@
 # Grid stats
-GRID_SIZE = 7
+GRID_SIZE = 10
 # GRID_SIZE = 5
 CELL_SIZE = 40
 MARGIN = 3
@@ -7,16 +7,16 @@ GRID_WIDTH = CELL_SIZE * GRID_SIZE
 GRID_HEIGHT = CELL_SIZE * GRID_SIZE
 
 # Dictionary of ships (ship length: ship amount)
-# SHIPS_DICT = {
-#     5: 1,
-#     4: 1,
-#     3: 2,
-#     2: 1,
-# }
 SHIPS_DICT = {
+    5: 1,
     4: 1,
     3: 2,
+    2: 1,
 }
+# SHIPS_DICT = {
+#     4: 1,
+#     3: 2,
+# }
 
 # Field colors
 FIELD_COLORS = {
