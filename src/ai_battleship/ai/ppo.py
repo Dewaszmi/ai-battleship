@@ -102,13 +102,8 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 class Agent(nn.Module):
     def __init__(self, envs):
         super().__init__()
-        if envs is not None:
-            obs_shape = envs.single_observation_space.shape
-            n_actions = envs.single_action_space.n
-        else:
-            grid_size = 7  # match your game grid
-            obs_shape = (3, grid_size, grid_size)  # must match training env
-            n_actions = grid_size * grid_size
+        obs_shape = envs.single_observation_space.shape
+        n_actions = envs.single_action_space.n
 
         self.conv = nn.Sequential(
             nn.Conv2d(obs_shape[0], 16, kernel_size=3, padding=1),
@@ -334,7 +329,7 @@ if __name__ == "__main__":
     writer.close()
     
     # save trained model
-    model_path = f"models/{run_name}.pth"
+    model_path = "models/battleship_model.pth"
     os.makedirs("models", exist_ok=True)
 
     torch.save(agent.state_dict(), model_path)

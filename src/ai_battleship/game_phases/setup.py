@@ -1,6 +1,7 @@
 from collections import deque
 from dataclasses import dataclass, field
 from typing_extensions import override # for older python
+from itertools import chain
 
 
 import pygame
@@ -29,6 +30,8 @@ class Setup(Phase):
 
         # Initialize AI grid
         self.ai_grid: Grid = generate_random_grid(self.ships_queue)
+        for ship_tile in chain.from_iterable(self.ai_grid.ships):
+            ship_tile.set_color(FIELD_COLORS["unknown"])
 
         # Handle player grid setup
         self.player_grid: Grid = Grid(GRID_SIZE)

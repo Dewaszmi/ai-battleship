@@ -27,3 +27,9 @@ python src/ai_battleship/ai/ppo.py --seed 1 --env-id Battleship-v0 --total-times
 
 alternatively
 pip install -r requirements.txt
+
+start game with: python -m ai_battleship.main
+
+train_agent with: python -m ai_battleship.ai.ppo
+
+see training stats: tensorboard --logdir runs

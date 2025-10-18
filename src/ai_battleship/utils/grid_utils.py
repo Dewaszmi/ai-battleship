@@ -107,15 +107,15 @@ def shoot(target_grid: Grid, target: Field):
 
         if check_if_sunk(targeted_ship):
             # Mark neighboring tiles as empty
-            adjacent_area = [
-                target_grid[f.row + adj_row, f.col + adj_col]
-                for f in targeted_ship
-                for adj_row in [-1, 0, 1]
-                for adj_col in [-1, 0, 1]
-                if target_grid.field_exists(f.row + adj_row, f.col + adj_col)
-            ]
-            for field in adjacent_area:
-                field.set_status("empty")
+            # adjacent_area = [
+            #     target_grid[f.row + adj_row, f.col + adj_col]
+            #     for f in targeted_ship
+            #     for adj_row in [-1, 0, 1]
+            #     for adj_col in [-1, 0, 1]
+            #     if target_grid.field_exists(f.row + adj_row, f.col + adj_col)
+            # ]
+            # for field in adjacent_area:
+            #     field.set_status("empty")
             # Mark targeted ship as sunk
             for field in targeted_ship:
                 field.set_status("sunk")
