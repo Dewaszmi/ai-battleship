@@ -33,7 +33,8 @@ class BattleshipEnv(gym.Env):
         self.grid = generate_random_grid(ships_queue)
         self.done = False
         state = self.get_state_from_grid(self.grid)
-        info = {}
+        # info = {}
+        info = {"action_mask": self.get_action_mask()}
         return state, info
 
     def step(self, action):
@@ -46,7 +47,8 @@ class BattleshipEnv(gym.Env):
         reward = -0.01
 
         observation = self.get_state_from_grid(self.grid)
-        info = {}
+        # info = {}
+        info = {"action_mask": self.get_action_mask()}
         return observation, reward, self.done, False, info  # (obs, reward, terminated, truncated, info)
 
     @staticmethod
@@ -60,6 +62,16 @@ class BattleshipEnv(gym.Env):
         state[2] = ((statuses == "miss") | (statuses == "sunk") | (statuses == "empty")).astype(np.float32)
 
         return state
+
+    def get_action_mask(self):
+        mask = np.zeros(self.grid_size**2, dtype=np.int8)
+        for r in range(self.grid_size):
+            for c in range(self.grid_size):
+                field = self.grid.fields[r][c]
+                # Valid if not already shot
+                if field.status in ("unknown", "ship"):
+                    mask[r * self.grid_size + c] = 1
+        return mask
 
     def render(self):
         grid_str = "\n".join(" ".join(f.status[0].upper() for f in row) for row in self.grid.fields)

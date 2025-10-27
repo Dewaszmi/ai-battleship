@@ -110,37 +110,38 @@ class Agent(nn.Module):
             nn.ReLU(),
             nn.Conv2d(16, 32, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.Flatten()
+            nn.Flatten(),
         )
 
         conv_out_size = 32 * obs_shape[1] * obs_shape[2]
 
-        self.actor = nn.Sequential(
-            nn.Linear(conv_out_size, 64),
-            nn.Tanh(),
-            nn.Linear(64, n_actions)
-        )
+        self.actor = nn.Sequential(nn.Linear(conv_out_size, 64), nn.Tanh(), nn.Linear(64, n_actions))
 
-        self.critic = nn.Sequential(
-            nn.Linear(conv_out_size, 64),
-            nn.Tanh(),
-            nn.Linear(64, 1)
-        )
+        self.critic = nn.Sequential(nn.Linear(conv_out_size, 64), nn.Tanh(), nn.Linear(64, 1))
 
     def get_value(self, x):
         x = x.unsqueeze(0) if x.dim() == 3 else x
         x = self.conv(x)
         return self.critic(x)
 
-    def get_action_and_value(self, x, action=None, deterministic: bool = False):
+    # deterministic is set to True during evaluation (usage in game)
+    def get_action_and_value(self, x, action=None, deterministic: bool = False, mask=None):
         x = x.unsqueeze(0) if x.dim() == 3 else x
         conv_out = self.conv(x)
         logits = self.actor(conv_out)
+
+        if mask is not None:
+            # Mask invalid actions by setting their logits to a large negative number
+            logits = logits.masked_fill(mask == 0, -1e8)
+
         probs = Categorical(logits=logits)
         if action is None:
+            # FIX: masks are passed correctly (invalid values are hidden, but episodes still last way too long)
             action = probs.probs.argmax() if deterministic else probs.sample()
+            for i in range(len(action)):
+                if probs.probs[i].min() == 0 and probs.probs[i][action[i]] == probs.probs[i].argmin():
+                    print("AGENT CHOSE MASKED ACTION - SHOULD NOT HAPPEN")
         return action, probs.log_prob(action), probs.entropy(), self.critic(conv_out)
-
 
 
 if __name__ == "__main__":
@@ -179,7 +180,9 @@ if __name__ == "__main__":
     envs = gym.vector.SyncVectorEnv(
         [make_env(args.env_id, i, args.capture_video, run_name) for i in range(args.num_envs)],
     )
-    assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
+    assert isinstance(
+        envs.single_action_space, gym.spaces.Discrete
+    ), "only discrete action space is supported"
 
     agent = Agent(envs).to(device)
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
@@ -195,7 +198,7 @@ if __name__ == "__main__":
     # TRY NOT TO MODIFY: start the game
     global_step = 0
     start_time = time.time()
-    next_obs, _ = envs.reset(seed=args.seed)
+    next_obs, infos = envs.reset(seed=args.seed)  # retrieve infos at the beggining for the masking
     next_obs = torch.Tensor(next_obs).to(device)
     next_done = torch.zeros(args.num_envs).to(device)
 
@@ -211,9 +214,26 @@ if __name__ == "__main__":
             obs[step] = next_obs
             dones[step] = next_done
 
+            # get masks from last infos (if available)
+            mask_list = []
+            if isinstance(infos, dict) and "action_mask" in infos:
+                mask_list = infos["action_mask"]
+            else:
+                print("SHOULD NOT BE PRINTED - MEANS VECTORIZING ISN'T WORKING")
+                # fallback for single or multi-env
+                infos_iter = infos if isinstance(infos, (list, tuple)) else [infos]
+                for info in infos_iter:
+                    if info is not None and "action_mask" in info:
+                        mask_list.append(np.array(info["action_mask"], dtype=np.int8))
+                    else:
+                        mask_list.append(np.ones(envs.single_action_space.n, dtype=np.int8))
+
+            # ensure it's a 2D numeric array before turning into torch tensor
+            masks = torch.tensor(np.stack(mask_list), dtype=torch.bool).to(device)
+
             # ALGO LOGIC: action logic
             with torch.no_grad():
-                action, logprob, _, value = agent.get_action_and_value(next_obs)
+                action, logprob, _, value = agent.get_action_and_value(next_obs, mask=masks)
                 values[step] = value.flatten()
             actions[step] = action
             logprobs[step] = logprob
@@ -244,7 +264,9 @@ if __name__ == "__main__":
                     nextnonterminal = 1.0 - dones[t + 1]
                     nextvalues = values[t + 1]
                 delta = rewards[t] + args.gamma * nextvalues * nextnonterminal - values[t]
-                advantages[t] = lastgaelam = delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
+                advantages[t] = lastgaelam = (
+                    delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
+                )
             returns = advantages + values
 
         # flatten the batch
@@ -264,7 +286,9 @@ if __name__ == "__main__":
                 end = start + args.minibatch_size
                 mb_inds = b_inds[start:end]
 
-                _, newlogprob, entropy, newvalue = agent.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
+                _, newlogprob, entropy, newvalue = agent.get_action_and_value(
+                    b_obs[mb_inds], b_actions.long()[mb_inds]
+                )
                 logratio = newlogprob - b_logprobs[mb_inds]
                 ratio = logratio.exp()
 
@@ -327,7 +351,7 @@ if __name__ == "__main__":
 
     envs.close()
     writer.close()
-    
+
     # save trained model
     model_path = "models/battleship_model.pth"
     os.makedirs("models", exist_ok=True)

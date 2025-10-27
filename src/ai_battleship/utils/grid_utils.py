@@ -44,14 +44,10 @@ def get_valid_placements(grid: Grid, direction: str, ship_length: int) -> list[F
     else:
         max_col = grid.grid_size - ship_length
 
-    return [
-        f for row in grid.fields for f in row if f.row <= max_row and f.col <= max_col
-    ]
+    return [f for row in grid.fields for f in row if f.row <= max_row and f.col <= max_col]
 
 
-def get_ship_position(
-    grid: Grid, _row: int, _col: int, direction: str, ship_length: int
-) -> list[Field]:
+def get_ship_position(grid: Grid, _row: int, _col: int, direction: str, ship_length: int) -> list[Field]:
     """Gets position occupied by ship with set coordinates and direction"""
     row, col = _row, _col
     position: list[Field] = []
@@ -107,15 +103,15 @@ def shoot(target_grid: Grid, target: Field):
 
         if check_if_sunk(targeted_ship):
             # Mark neighboring tiles as empty
-            # adjacent_area = [
-            #     target_grid[f.row + adj_row, f.col + adj_col]
-            #     for f in targeted_ship
-            #     for adj_row in [-1, 0, 1]
-            #     for adj_col in [-1, 0, 1]
-            #     if target_grid.field_exists(f.row + adj_row, f.col + adj_col)
-            # ]
-            # for field in adjacent_area:
-            #     field.set_status("empty")
+            adjacent_area = [
+                target_grid[f.row + adj_row, f.col + adj_col]
+                for f in targeted_ship
+                for adj_row in [-1, 0, 1]
+                for adj_col in [-1, 0, 1]
+                if target_grid.field_exists(f.row + adj_row, f.col + adj_col)
+            ]
+            for field in adjacent_area:
+                field.set_status("empty")
             # Mark targeted ship as sunk
             for field in targeted_ship:
                 field.set_status("sunk")
