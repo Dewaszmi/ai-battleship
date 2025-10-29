@@ -18,7 +18,6 @@ class BattleshipEnv(gym.Env):
         self.grid_size = GRID_SIZE
         self.num_channels = 3
 
-        # Gymnasium API spaces
         self.action_space = spaces.Discrete(self.grid_size * self.grid_size)
         self.observation_space = spaces.Box(
             low=0.0, high=1.0, shape=(self.num_channels, self.grid_size, self.grid_size), dtype=np.float32
@@ -49,7 +48,7 @@ class BattleshipEnv(gym.Env):
         observation = self.get_state_from_grid(self.grid)
         # info = {}
         info = {"action_mask": self.get_action_mask()}
-        return observation, reward, self.done, False, info  # (obs, reward, terminated, truncated, info)
+        return observation, reward, self.done, False, info  # obs, reward, terminated, truncated, info
 
     @staticmethod
     def get_state_from_grid(grid: Grid) -> torch.Tensor:
@@ -68,8 +67,7 @@ class BattleshipEnv(gym.Env):
         for r in range(self.grid_size):
             for c in range(self.grid_size):
                 field = self.grid.fields[r][c]
-                # Valid if not already shot
-                if field.status in ("unknown", "ship"):
+                if field.status in ("unknown", "ship"):  # valid if not already shot / confirmed empty
                     mask[r * self.grid_size + c] = 1
         return mask
 

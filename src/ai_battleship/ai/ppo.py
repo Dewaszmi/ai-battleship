@@ -125,7 +125,7 @@ class Agent(nn.Module):
         return self.critic(x)
 
     # deterministic is set to True during evaluation (usage in game)
-    def get_action_and_value(self, x, action=None, deterministic: bool = False, mask=None):
+    def get_action_and_value(self, x, action=None, mask=None, deterministic: bool = False):
         x = x.unsqueeze(0) if x.dim() == 3 else x
         conv_out = self.conv(x)
         logits = self.actor(conv_out)
@@ -138,9 +138,10 @@ class Agent(nn.Module):
         if action is None:
             # FIX: masks are passed correctly (invalid values are hidden, but episodes still last way too long)
             action = probs.probs.argmax() if deterministic else probs.sample()
-            for i in range(len(action)):
-                if probs.probs[i].min() == 0 and probs.probs[i][action[i]] == probs.probs[i].argmin():
-                    print("AGENT CHOSE MASKED ACTION - SHOULD NOT HAPPEN")
+            if deterministic == False:
+                for i in range(len(action)):
+                    if probs.probs[i][action[i]] == 0:
+                        print("AGENT CHOSE MASKED ACTION - SHOULD NOT HAPPEN")
         return action, probs.log_prob(action), probs.entropy(), self.critic(conv_out)
 
 
@@ -230,6 +231,7 @@ if __name__ == "__main__":
 
             # ensure it's a 2D numeric array before turning into torch tensor
             masks = torch.tensor(np.stack(mask_list), dtype=torch.bool).to(device)
+            # masks = None
 
             # ALGO LOGIC: action logic
             with torch.no_grad():

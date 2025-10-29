@@ -10,14 +10,14 @@ from ai_battleship.grid import Grid
 
 def generate_random_grid(ships_queue: deque[int]):
     """Returns a randomly generated valid grid"""
-    # max_attempts = 30
-    # attempts = 0
+    max_attempts = 99999
+    attempts = 0
 
     grid = Grid(GRID_SIZE)
     ships_queue = deque(ships_queue)
     current_ship = get_next_ship(ships_queue)
 
-    while current_ship:  # and attempts < max_attempts:
+    while current_ship and attempts < max_attempts:
         # Try a random position and direction
         random_dir = choice(["v", "h"])
         random_field = choice(get_valid_placements(grid, random_dir, current_ship))
@@ -29,8 +29,16 @@ def generate_random_grid(ships_queue: deque[int]):
         if place_ship(grid, random_position):
             current_ship = get_next_ship(ships_queue)
 
-    # if current_ship:
-    #     raise RuntimeError("Failed to generate valid AI grid")
+        attempts += 1
+
+    if current_ship:
+        raise RuntimeError(
+            """
+            Failed to generate a valid AI grid.
+            This is almost certainly caused by the grid size being too small to properly place all the ships without obstructions / going out of bounds.
+            Please review the GRID_SIZE and SHIPS_DICT constants in the src/ai_battleship/constants.py file to make sure they allow for proper placement.
+            """
+        )
 
     return grid
 

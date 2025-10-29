@@ -1,12 +1,13 @@
-# Grid stats
-GRID_SIZE = 8
-# GRID_SIZE = 5
-CELL_SIZE = 40
-MARGIN = 3
-GRID_WIDTH = CELL_SIZE * GRID_SIZE
-GRID_HEIGHT = CELL_SIZE * GRID_SIZE
+# ====================
+# GRID STATS
+# ====================
+
+# Amount of tiles (squares) in a row
+# MODIFY THIS IF YOU WANT TO CHECK DIFFERENT SETUPS (DEFAULT VALUE: 10)
+GRID_SIZE = 10
 
 # Dictionary of ships (ship length: ship amount)
+# MODIFY THIS IS YOU WANT TO TRY DIFFERENT SETUPS (DEFAULT VALUES BELOW)
 # SHIPS_DICT = {
 #     5: 1,
 #     4: 1,
@@ -14,10 +15,22 @@ GRID_HEIGHT = CELL_SIZE * GRID_SIZE
 #     2: 1,
 # }
 SHIPS_DICT = {
+    5: 1,
     4: 1,
     3: 2,
     2: 1,
 }
+
+
+# For Pygame display
+CELL_SIZE = 40
+MARGIN = 3
+GRID_WIDTH = CELL_SIZE * GRID_SIZE
+GRID_HEIGHT = CELL_SIZE * GRID_SIZE
+
+# ====================
+# COLORS
+# ====================
 
 # Field colors
 FIELD_COLORS = {

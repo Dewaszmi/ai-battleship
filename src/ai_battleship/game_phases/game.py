@@ -2,25 +2,27 @@ from dataclasses import dataclass, field
 from itertools import chain
 from random import choice
 from time import sleep
-import torch
 from typing import final
-from typing_extensions import override # for older python
 
 import pygame
-
-from ai_battleship.constants import HIGHLIGHT_COLORS
-from ai_battleship.game_phases.base import Cursor, Phase
-from ai_battleship.ai.ppo import Agent
-from ai_battleship.envs.battleship_env_gym import BattleshipEnv
-from ai_battleship.utils.grid_utils import *
+import torch
 from gymnasium.vector import SyncVectorEnv
+from typing_extensions import override  # for older python
+
+from ai_battleship.ai.ppo import Agent
+from ai_battleship.constants import HIGHLIGHT_COLORS
+from ai_battleship.envs.battleship_env_gym import BattleshipEnv
+from ai_battleship.game_phases.base import Cursor, Phase
+from ai_battleship.utils.grid_utils import *
+
 
 def EnvWrapper():
     """Wrapper to create vectorized battleship environments compatible with ppo code"""
+
     def make_env():
         return BattleshipEnv()
-    return SyncVectorEnv([make_env])
 
+    return SyncVectorEnv([make_env])
 
 
 @final
@@ -37,7 +39,9 @@ class Game(Phase):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         envs = EnvWrapper()
         self.agent = Agent(envs=envs).to(self.device)
-        self.agent.load_state_dict(torch.load("models/battleship_model.pth", map_location=self.device, weights_only=True))
+        self.agent.load_state_dict(
+            torch.load("models/battleship_model.pth", map_location=self.device, weights_only=True)
+        )
         self.agent.eval()
 
         # Start game
@@ -60,9 +64,9 @@ class Game(Phase):
 
         target = self.player_grid[row, col]
         self.hitmarker = (row, col)  # add visible indicator for where the ai has shot
-        # print(f"ai chose: {row}, {col} with state: {target.status}")
-        # if not is_valid_target(target):
-        #     print("ai has chosen an invalid target!")
+        print(f"ai chose: {row}, {col} with state: {target.status}")
+        if not is_valid_target(target):
+            print("ai has chosen an invalid target!")
 
         shoot(self.player_grid, target)
 
@@ -150,6 +154,5 @@ class Game(Phase):
     def draw(self, cursor_grid: int = 1):  # Draw cursor at the ai grid (right)
         super().draw(cursor_grid=cursor_grid)
 
-    def next_phase(self):
-        """Returns None to signify that the game has ended"""
+    def next_phase(self):  # Returns None to signify that the game has ended
         return None
