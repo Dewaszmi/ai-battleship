@@ -10,11 +10,11 @@ def main():
     if not model_path.exists():
         print(
             f"""
-    Couldn't find a model matching specified rules in the models/ directory.
-    Please run:
-    python train_agent.py --episodes {config.episode_count} --block-repeated-shots {config.block_repeated_shots} --mark-sunk-neighbors {config.mark_sunk_neighbors}
-    in order to train a new agent with set rules, then repeat the command.
-    """
+            Couldn't find a model matching specified rules in the models/ directory.
+            Please run:
+            'python train_agent.py --episodes {config.episode_count}{" --allow-repeated-shots 1" if config.allow_repeated_shots else ""}{" --mark-sunk-neighbors 1" if config.mark_sunk_neighbors else ""}'
+            in order to train a new agent with set rules, then repeat the command.
+            """
         )
         return
 

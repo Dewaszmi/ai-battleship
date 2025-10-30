@@ -3,6 +3,8 @@
 from collections import deque
 from random import choice
 
+import numpy as np
+
 from ai_battleship.constants import *
 from ai_battleship.field import Field
 from ai_battleship.grid import Grid
@@ -133,16 +135,27 @@ def shoot(target_grid: Grid, target: Field, mark_sunk_neighbors: bool):
 
 
 def get_targeted_ship(target_grid: Grid, target: Field) -> list[Field] | None:
-    """Return the ship hit by the shot, or None if missed."""
+    """Return the ship hit by the shot, or None if missed"""
     return next((ship for ship in target_grid.ships if target in ship), None)
 
 
 def check_if_sunk(target_ship: list[Field]) -> bool:
-    """Check if the targeted ship was sunk."""
+    """Check if the targeted ship was sunk"""
     return all(f.status == "hit" for f in target_ship)
 
 
 def clear_highlights(grid: Grid):
-    """Remove all highlights from the grid."""
+    """Remove all highlights from the grid"""
     for f in grid.fields.flat:
         f.set_color()
+
+
+# def get_action_mask(grid: Grid):
+#     """Get the mask of valid targets from a grid"""
+#     mask = np.zeros(grid.grid_size**2, dtype=np.int8)
+#     for r in range(grid.grid_size):
+#         for c in range(grid.grid_size):
+#             field = grid.fields[r][c]
+#             if field.status in ("unknown", "ship"):  # valid if not already shot / confirmed empty
+#                 mask[r * grid.grid_size + c] = 1
+#     return mask

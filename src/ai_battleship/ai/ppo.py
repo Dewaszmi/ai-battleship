@@ -80,10 +80,10 @@ class Args:
     """the number of iterations (computed in runtime)"""
 
 
-def make_env(env_id, idx, capture_video, run_name):
+def make_env(env_id, idx, capture_video, run_name, config):
     def thunk():
         if capture_video and idx == 0:
-            env = gym.make(env_id, render_mode="rgb_array")
+            env = gym.make(env_id, render_mode="rgb_array", config=config)
             env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
         else:
             env = gym.make(env_id)
@@ -183,7 +183,7 @@ def train_loop(config):
 
     # env setup
     envs = gym.vector.SyncVectorEnv(
-        [make_env(args.env_id, i, args.capture_video, run_name) for i in range(args.num_envs)],
+        [make_env(args.env_id, i, args.capture_video, run_name, config=config) for i in range(args.num_envs)],
     )
     assert isinstance(
         envs.single_action_space, gym.spaces.Discrete
@@ -203,7 +203,7 @@ def train_loop(config):
     # TRY NOT TO MODIFY: start the game
     global_step = 0
     start_time = time.time()
-    next_obs, infos = envs.reset(seed=args.seed)  # retrieve infos at the beggining for the masking
+    next_obs, infos = envs.reset(seed=args.seed)  # retrieve infos at the beginning for the masking
     next_obs = torch.Tensor(next_obs).to(device)
     next_done = torch.zeros(args.num_envs).to(device)
 
@@ -219,7 +219,7 @@ def train_loop(config):
             obs[step] = next_obs
             dones[step] = next_done
 
-            if config.block_repeated_shots:
+            if not config.allow_repeated_shots:
                 # get masks from last infos (if available)
                 mask_list = []
                 if isinstance(infos, dict) and "action_mask" in infos:

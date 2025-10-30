@@ -10,7 +10,7 @@ import torch
 from gymnasium.vector import SyncVectorEnv
 from typing_extensions import override  # for older python
 
-from ai_battleship.ai.envs.battleship_env_gym import BattleshipEnv
+from ai_battleship.ai.envs.battleship_env import BattleshipEnv
 from ai_battleship.ai.ppo import Agent
 from ai_battleship.constants import HIGHLIGHT_COLORS
 from ai_battleship.game_phases.base import Cursor, Phase
@@ -59,8 +59,8 @@ class Game(Phase):
         state_tensor = torch.from_numpy(state).float().to(self.device)
 
         mask = (
-            np.array(self.player_grid.get_action_mask(), dtype=np.int8)
-            if self.config.block_repeated_shots
+            torch.tensor(self.player_grid.get_action_mask(), dtype=torch.bool, device=self.device)
+            if not self.config.allow_repeated_shots
             else None
         )
 
@@ -72,9 +72,9 @@ class Game(Phase):
         target = self.player_grid[row, col]
         self.hitmarker = (row, col)  # add visible indicator for where the ai has shot
 
-        print(f"Ai chose: {row}, {col} with state: {target.status}")
-        if not target.is_valid_target():
-            print("Ai has chosen an invalid target!")
+        # print(f"Ai chose: {row}, {col} with state: {target.status}")
+        # if not target.is_valid_target():
+        #     print("Ai has chosen an invalid target!")
 
         shoot(self.player_grid, target, mark_sunk_neighbors=self.config.mark_sunk_neighbors)
 
@@ -115,7 +115,7 @@ class Game(Phase):
         """Handle player turn"""
         if not self.done:
             target = self.ai_grid[self.cursor.row, self.cursor.col]
-            if self.config.block_repeated_shots and not target.is_valid_target():
+            if not self.config.allow_repeated_shots and not target.is_valid_target():
                 print("Shooting invalid targets is disabled for this session.")
                 return
 

@@ -6,16 +6,37 @@ The project consists of the code to train an agent to play Battleship as well as
 
 The algorithm used for training is a modified version of the [classic PPO implementation](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py) from the [CleanRL library](https://github.com/vwxyzjn/cleanrl). It utilises a custom Battleship Gymnasium environment, which takes additional arguments in the training script to set special "difficulty" variations for the agent to learn (or not ^\_^).
 
-The project also includes the ability to log and monitor training processes via Tensorboard (also borrowed from the CleanRL's project repository).
+The project includes the ability to store and compare agents trained with different rulesets of the game environment, as well as log and monitor training processes via Tensorboard (borrowed from the CleanRL's project repository).
+
+## AI specification
+
+The environment is defined as a 10x10 square grid consisting of tiles, some of which are defined as the "ship" tiles. During every step of a episode the agent chooses one of 100 actions, each representing shooting a specific tile on the grid. The episode ends when all "ship" tiles have been shot, signifying game end.
+
+The reward is a static -0.01 for each action taken, encouraging the agent to complete the episode in the least amount of shots. I found this to work better than giving more specialised rewards based on what the action was, plus it's simpler.
+
+The PPO code is located under /src/ai_battleship/ai/ppo.py, and the environment
 
 ### Goals for the agent to learn:
 
-- shooting tiles vertically or horizontally adjacent to a successful hit is valuable --> results in a high probability of getting another hit
+- **Shooting tiles vertically or horizontally adjacent to a successful hit is valuable --> results in a high probability of getting another hit**
 
-This is the main requirement for the agent to learn, to achieve this I'm using a convolutional neural network to process the playing grid akin to a low resolution image.
+  This is the main requirement for the agent to learn in order to play correctly. To achieve this I used a convolutional neural network in order to process the playing grid akin to a low resolution image. The grid is split into 3 channels encoding the following states:
 
-- repeated shooting of the same field is unwanted --> (no valuable reward)
-- shooting the neighboring fields of a sunk ship is bad --> (guaranteed to have no ship fields)
+  - Valid shots - unshot fields, can be either empty or contain a ship. These are the tiles that should be targeted by the agent.
+
+  - Hits - shot, but not sunk ship fields. The agent should use them as guides onto which fields to target next (as ship tiles lay together). These tiles however should **not** be targeted by the agent (as repeated shooting of the same tile yields no reward)
+
+  - Everything else - missed shots, sunk ship tiles and optionally tiles surrounding a sunk ship (which are guaranteed to be empty, effectively being the same as misses). Similiar to the hits, these tiles should also **not** be targeted by the agent.
+
+- **Repeated shooting of the same field is unwanted --> no valuable reward \[optional\]**
+
+  Whether the ai has to learn this rule is dependant on one of the two "difficulty" settings. Passing the **--allow-repeated-shots** argument with a value of '1' (True) allows the agent (and player) to repeatedly target the same tile, meaning the agent needs to learn to avoid doing so. This might result in very low rewards in the early training stages, as the agent might waste hundreds of shots on already targeted fields.
+
+- **Shooting the neighboring tiles of a sunk ship is unwanted --> guaranteed to be unsuccesful \[optional\]**
+
+  This is the second rule of which whether the ai has to learn is dependant on the "difficulty" settings: passing the **--mark-sunk-neighbors** argument with a value of '1' (True) automatically marks the neighboring tiles of a sunk ship as misses, which blocks / discourages the agent from targeting them. Disabling this results in a slightly harder task for the agent.
+
+The default values for difficulty arguments are both '0', mimicking the standard Battleship board game rules. This means the agent won't target already shot fields, but has to learn avoiding shooting sunken tile neighbors.
 
 ## Setup
 
@@ -35,9 +56,12 @@ should prepare the virtual environment with all the dependencies ready.
 ## Usage
 
 Both train_agent.py and start_game.py accept the same command line arguments:
-- --episodes (default = 3000000) - number of episodes used to train the agent (higher values result in a better adapted agent)
-- --block-repeated-shots (boolean 0/1, default = 1) - first "difficulty" setting, indicates whether the agent (and the player) can repeatedly target the same tile. Turning it off makes the task significantly 
-- **--mark-sunk-neighbors** (boolean 0/1, default = 0) - second "difficulty" setting, indicates whether
+
+- **--episodes** (default = 3000000) - number of episodes used to train the agent
+
+- **--allow-repeated-shots** (boolean 0/1, default = 0) - first difficulty setting, indicates whether the agent (and the player) can target the same tile multiple times.
+
+- **--mark-sunk-neighbors** (boolean 0/1, default = 0) - second difficulty setting, indicates whether the tiles surrounding the sunk ships are automatically marked as empty / misses
 
 **Training the agent:**
 
@@ -45,17 +69,21 @@ Both train_agent.py and start_game.py accept the same command line arguments:
 python train_agent.py [arguments]
 ```
 
-**Start the game:**
+runs the training loop, saving the trained model to the models/ directory upon finishing, and creates a log entry in the runs/ directory.
+
+**Starting the game:**
 
 ```
 python start_game.py [arguments]
 ```
 
+checks if a model file trained on the specific argument configuration is present, and if found, starts the game.
+
 Controls:
 
-- arrow keys / hjkl to move cursor
-- space to place ship / shoot target
-- rotate ship during setup with r
+- arrow keys / 'hjkl' to move cursor
+- 'space' to place ship / shoot target
+- 'r' to rotate ship during setup
 
 **Access Tensorboard training log data:**
 
@@ -81,7 +109,7 @@ Here are the results I received for a standard 10x10 grid with 5 ships (default 
 
 This was tested with both shot masking (no repeated shots), and empty tile highlight (tiles neighboring sunk ship are highlighted for the agent as guaranteed misses) enabled, so with all the extra "difficulty" settings disabled, which means the agent had the least amount of rules to learn by itself. Enabling any of these rules would result in much worse performance at the start and slighlty worse results at the ending, but overall the agent seems to learn all scenarios pretty well.
 
-I didn't try using episode count higher than 3 million due to quite long time taken by the training process, but I think the average result of 48 shots is pretty close to the optimum amount of 42 measured in the linked post, so I'm pretty happy with the outcome.
+I didn't try using episode count higher than 3 million due to quite the long time taken by the training process, but I think the average result of 48 shots is pretty close to the optimum amount of 42 measured in the linked post, so I'm pretty happy with the outcome.
 
 ## TODO:
 

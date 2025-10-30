@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from gymnasium import spaces
 
+from ai_battleship.config import Config
 from ai_battleship.constants import GRID_SIZE, SHIPS_DICT
 from ai_battleship.grid import Grid
 from ai_battleship.utils.grid_utils import generate_random_grid, shoot
@@ -13,8 +14,12 @@ from ai_battleship.utils.grid_utils import generate_random_grid, shoot
 class BattleshipEnv(gym.Env):
     metadata = {"render_modes": ["human"]}
 
-    def __init__(self):
+    def __init__(self, config: Config | None = None):
         super().__init__()
+        if config is None:
+            config = Config()
+        self.config = config
+
         self.grid_size = GRID_SIZE
         self.num_channels = 3
 
@@ -28,27 +33,28 @@ class BattleshipEnv(gym.Env):
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
-        masking = True
         ships_queue = deque([k for k, v in SHIPS_DICT.items() for _ in range(v)])
         self.grid = generate_random_grid(ships_queue)
         self.done = False
         state = self.get_state_from_grid(self.grid)
         info = (
-            {"action_mask": self.get_action_mask()} if masking else {}
+            {"action_mask": self.get_action_mask()} if not self.config.allow_repeated_shots else {}
         )  # get mask of invalid shots if required
         return state, info
 
-    def step(self, action, masking: bool):
+    def step(self, action):
         row = action // self.grid_size
         col = action % self.grid_size
         target = self.grid[row, col]
-        shoot(self.grid, target)
+        shoot(self.grid, target, mark_sunk_neighbors=self.config.mark_sunk_neighbors)
 
         self.done = all(all(f.status == "sunk" for f in ship) for ship in self.grid.ships)
         reward = -0.01
 
         observation = self.get_state_from_grid(self.grid)
-        info = {"action_mask": self.get_action_mask()} if masking else {}
+        info = (
+            {"action_mask": self.get_action_mask()} if not self.config.allow_repeated_shots else {}
+        )  # get mask of invalid shots if required
         return observation, reward, self.done, False, info  # obs, reward, terminated, truncated, info
 
     @staticmethod

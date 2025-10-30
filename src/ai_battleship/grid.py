@@ -32,3 +32,13 @@ class Grid:
 
     def field_exists(self, row: int, col: int):
         return row in range(self.grid_size) and col in range(self.grid_size)
+
+    def get_action_mask(self):
+        """Get the mask of valid targets from a grid"""
+        mask = np.zeros(self.grid_size**2, dtype=np.int8)
+        for r in range(self.grid_size):
+            for c in range(self.grid_size):
+                field = self.fields[r][c]
+                if field.status in ("unknown", "ship"):  # valid if not already shot / confirmed empty
+                    mask[r * self.grid_size + c] = 1
+        return mask
