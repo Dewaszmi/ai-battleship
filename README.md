@@ -28,13 +28,14 @@ should prepare the virtual environment with all the dependencies ready.
 **Training the agent:**
 
 ```
+python train_agent.py [arguments]
 python src/ai_battleship/ai/ppo.py --seed 1 --env-id Battleship-v0 --total-timesteps 1000000
 ```
 
 **Start the game:**
 
 ```
-python src/ai_battleship/main.py
+python start_game.py [arguments]
 ```
 
 Controls:

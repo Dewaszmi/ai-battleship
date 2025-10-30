@@ -4,14 +4,15 @@ from random import choice
 from time import sleep
 from typing import final
 
+import numpy as np
 import pygame
 import torch
 from gymnasium.vector import SyncVectorEnv
 from typing_extensions import override  # for older python
 
+from ai_battleship.ai.battleship_env_gym import BattleshipEnv
 from ai_battleship.ai.ppo import Agent
 from ai_battleship.constants import HIGHLIGHT_COLORS
-from ai_battleship.envs.battleship_env_gym import BattleshipEnv
 from ai_battleship.game_phases.base import Cursor, Phase
 from ai_battleship.utils.grid_utils import *
 
@@ -40,7 +41,7 @@ class Game(Phase):
         envs = EnvWrapper()
         self.agent = Agent(envs=envs).to(self.device)
         self.agent.load_state_dict(
-            torch.load("models/battleship_model.pth", map_location=self.device, weights_only=True)
+            torch.load(f=self.config.model_path, map_location=self.device, weights_only=True)
         )
         self.agent.eval()
 
@@ -57,18 +58,25 @@ class Game(Phase):
         state = BattleshipEnv.get_state_from_grid(self.player_grid)
         state_tensor = torch.from_numpy(state).float().to(self.device)
 
-        action, _, _, _ = self.agent.get_action_and_value(state_tensor, deterministic=True)
+        mask = (
+            np.array(self.player_grid.get_action_mask(), dtype=np.int8)
+            if self.config.block_repeated_shots
+            else None
+        )
+
+        action, _, _, _ = self.agent.get_action_and_value(state_tensor, mask=mask, deterministic=True)
         action_idx = action.item()
         row = action_idx // self.player_grid.grid_size
         col = action_idx % self.player_grid.grid_size
 
         target = self.player_grid[row, col]
         self.hitmarker = (row, col)  # add visible indicator for where the ai has shot
-        print(f"ai chose: {row}, {col} with state: {target.status}")
-        if not is_valid_target(target):
-            print("ai has chosen an invalid target!")
 
-        shoot(self.player_grid, target)
+        print(f"Ai chose: {row}, {col} with state: {target.status}")
+        if not target.is_valid_target():
+            print("Ai has chosen an invalid target!")
+
+        shoot(self.player_grid, target, mark_sunk_neighbors=self.config.mark_sunk_neighbors)
 
     def check_victory(self):
         """Check if the game has finished"""
@@ -88,7 +96,7 @@ class Game(Phase):
 
         self.cursor.move(direction, grid_size=self.ai_grid.grid_size)
         new_target = self.ai_grid[self.cursor.row, self.cursor.col]
-        if not is_valid_target(new_target):
+        if not new_target.is_valid_target():
             new_target.set_color(HIGHLIGHT_COLORS["bad"])
 
     def handle_turn(self):
@@ -106,9 +114,12 @@ class Game(Phase):
     def confirm(self):
         """Handle player turn"""
         if not self.done:
-            shoot(
-                self.ai_grid, self.ai_grid[self.cursor.row, self.cursor.col]
-            )  # (allows shooting invalid targets by the player to match ai capabilities)
+            target = self.ai_grid[self.cursor.row, self.cursor.col]
+            if self.config.block_repeated_shots and not target.is_valid_target():
+                print("Shooting invalid targets is disabled for this session.")
+                return
+
+            shoot(self.ai_grid, self.ai_grid[self.cursor.row, self.cursor.col])
             self.check_victory()
             self.draw()
             if not self.done:

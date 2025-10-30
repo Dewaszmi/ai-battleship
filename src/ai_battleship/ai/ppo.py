@@ -14,6 +14,7 @@ from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 
 import ai_battleship.envs
+from ai_battleship.config import Config
 
 
 @dataclass
@@ -36,7 +37,7 @@ class Args:
     """whether to capture videos of the agent performances (check out `videos` folder)"""
 
     # Algorithm specific arguments
-    env_id: str = "CartPole-v1"
+    env_id: str = "Battleship-v0"
     """the id of the environment"""
     total_timesteps: int = 500000
     """total timesteps of the experiments"""
@@ -136,7 +137,6 @@ class Agent(nn.Module):
 
         probs = Categorical(logits=logits)
         if action is None:
-            # FIX: masks are passed correctly (invalid values are hidden, but episodes still last way too long)
             action = probs.probs.argmax() if deterministic else probs.sample()
             if deterministic == False:
                 for i in range(len(action)):
@@ -145,8 +145,13 @@ class Agent(nn.Module):
         return action, probs.log_prob(action), probs.entropy(), self.critic(conv_out)
 
 
-if __name__ == "__main__":
+def train_loop(config):
+    if config is None:
+        config = Config()
+
     args = tyro.cli(Args)
+    args.total_timesteps = config.episode_count  # override ppo argument parsing
+
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
@@ -215,23 +220,25 @@ if __name__ == "__main__":
             obs[step] = next_obs
             dones[step] = next_done
 
-            # get masks from last infos (if available)
-            mask_list = []
-            if isinstance(infos, dict) and "action_mask" in infos:
-                mask_list = infos["action_mask"]
-            else:
-                print("SHOULD NOT BE PRINTED - MEANS VECTORIZING ISN'T WORKING")
-                # fallback for single or multi-env
-                infos_iter = infos if isinstance(infos, (list, tuple)) else [infos]
-                for info in infos_iter:
-                    if info is not None and "action_mask" in info:
-                        mask_list.append(np.array(info["action_mask"], dtype=np.int8))
-                    else:
-                        mask_list.append(np.ones(envs.single_action_space.n, dtype=np.int8))
+            if config.block_repeated_shots:
+                # get masks from last infos (if available)
+                mask_list = []
+                if isinstance(infos, dict) and "action_mask" in infos:
+                    mask_list = infos["action_mask"]
+                else:
+                    print("SHOULD NOT BE PRINTED - MEANS VECTORIZING ISN'T WORKING")
+                    # fallback for single or multi-env
+                    infos_iter = infos if isinstance(infos, (list, tuple)) else [infos]
+                    for info in infos_iter:
+                        if info is not None and "action_mask" in info:
+                            mask_list.append(np.array(info["action_mask"], dtype=np.int8))
+                        else:
+                            mask_list.append(np.ones(envs.single_action_space.n, dtype=np.int8))
 
-            # ensure it's a 2D numeric array before turning into torch tensor
-            masks = torch.tensor(np.stack(mask_list), dtype=torch.bool).to(device)
-            # masks = None
+                # ensure it's a 2D numeric array before turning into torch tensor
+                masks = torch.tensor(np.stack(mask_list), dtype=torch.bool).to(device)
+            else:
+                masks = None
 
             # ALGO LOGIC: action logic
             with torch.no_grad():
@@ -355,8 +362,11 @@ if __name__ == "__main__":
     writer.close()
 
     # save trained model
-    model_path = "models/battleship_model.pth"
+    model_path = config.model_path
     os.makedirs("models", exist_ok=True)
-
     torch.save(agent.state_dict(), model_path)
     print(f"Model saved to {model_path}")
+
+
+if __name__ == "__main__":
+    train_loop()

@@ -1,10 +1,9 @@
 from collections import deque
 from dataclasses import dataclass, field
-from typing_extensions import override # for older python
 from itertools import chain
 
-
 import pygame
+from typing_extensions import override  # for older python
 
 from ai_battleship.constants import *
 from ai_battleship.field import Field

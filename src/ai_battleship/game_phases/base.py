@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 import pygame
 
+from ai_battleship.config import Config
 from ai_battleship.constants import *
 from ai_battleship.grid import Grid
 
@@ -35,6 +36,7 @@ class Cursor:
 
 @dataclass
 class Phase(ABC):
+    config: Config
     screen: pygame.Surface
     player_grid: Grid = field(init=False)
     ai_grid: Grid = field(init=False)

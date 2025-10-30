@@ -3,21 +3,22 @@
 from collections import deque
 from random import choice
 
+from ai_battleship.config import Config
 from ai_battleship.constants import *
 from ai_battleship.field import Field
 from ai_battleship.grid import Grid
 
 
-def generate_random_grid(ships_queue: deque[int]):
-    """Returns a randomly generated valid grid"""
-    max_attempts = 99999
-    attempts = 0
+def generate_random_grid(ships_queue: deque[int], max_attempts: int | None = None):
+    """Returns a randomly generated valid grid.
 
+    If max_attempts is defined, throws an error if unable to generate valid grid in specified amount.
+    """
     grid = Grid(GRID_SIZE)
     ships_queue = deque(ships_queue)
     current_ship = get_next_ship(ships_queue)
 
-    while current_ship and attempts < max_attempts:
+    while current_ship and (max_attempts is None or max_attempts > 0):
         # Try a random position and direction
         random_dir = choice(["v", "h"])
         random_field = choice(get_valid_placements(grid, random_dir, current_ship))
@@ -29,7 +30,8 @@ def generate_random_grid(ships_queue: deque[int]):
         if place_ship(grid, random_position):
             current_ship = get_next_ship(ships_queue)
 
-        attempts += 1
+        if max_attempts is not None:
+            max_attempts -= 1
 
     if current_ship:
         raise RuntimeError(
@@ -99,10 +101,9 @@ def get_next_ship(queue: deque[int]) -> int | None:
     return queue.popleft() if queue else None
 
 
-def shoot(target_grid: Grid, target: Field):
+def shoot(target_grid: Grid, target: Field, mark_sunk_neighbors: bool):
     """Try to fire at selected field, return False if invalid target"""
-    # Check if valid target
-    if not is_valid_target(target):
+    if not target.is_valid_target():
         return False
 
     targeted_ship = get_targeted_ship(target_grid, target)
@@ -110,16 +111,19 @@ def shoot(target_grid: Grid, target: Field):
         target.set_status("hit")
 
         if check_if_sunk(targeted_ship):
-            # Mark neighboring tiles as empty
-            adjacent_area = [
-                target_grid[f.row + adj_row, f.col + adj_col]
-                for f in targeted_ship
-                for adj_row in [-1, 0, 1]
-                for adj_col in [-1, 0, 1]
-                if target_grid.field_exists(f.row + adj_row, f.col + adj_col)
-            ]
-            for field in adjacent_area:
-                field.set_status("empty")
+
+            # Mark neighboring tiles as empty if set in config
+            if mark_sunk_neighbors:
+                adjacent_area = [
+                    target_grid[f.row + adj_row, f.col + adj_col]
+                    for f in targeted_ship
+                    for adj_row in [-1, 0, 1]
+                    for adj_col in [-1, 0, 1]
+                    if target_grid.field_exists(f.row + adj_row, f.col + adj_col)
+                ]
+                for field in adjacent_area:
+                    field.set_status("empty")
+
             # Mark targeted ship as sunk
             for field in targeted_ship:
                 field.set_status("sunk")
@@ -129,26 +133,17 @@ def shoot(target_grid: Grid, target: Field):
     return True
 
 
-def is_valid_target(target: Field) -> bool:
-    """Check if selected field is a valid target"""
-    return target.status not in [
-        "hit",
-        "sunk",
-        "miss",
-        "empty",
-    ]  # empty fields are created around the ship that sank, they are guaranteed to not have a ship
-
-
 def get_targeted_ship(target_grid: Grid, target: Field) -> list[Field] | None:
-    """Return the ship hit by the shot, or None if missed"""
+    """Return the ship hit by the shot, or None if missed."""
     return next((ship for ship in target_grid.ships if target in ship), None)
 
 
 def check_if_sunk(target_ship: list[Field]) -> bool:
-    """Check if the targeted ship was sunk"""
+    """Check if the targeted ship was sunk."""
     return all(f.status == "hit" for f in target_ship)
 
 
 def clear_highlights(grid: Grid):
+    """Remove all highlights from the grid."""
     for f in grid.fields.flat:
         f.set_color()

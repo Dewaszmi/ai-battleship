@@ -9,9 +9,7 @@ class Field:
 
     row: int
     col: int
-    status: str = (
-        "unknown"  # possible statuses = "unknown, ship, hit, miss, sunk, empty"
-    )
+    status: str = "unknown"  # possible statuses = "unknown, ship, hit, miss, sunk, empty"
     color: tuple[int, int, int] = field(
         init=False
     )  # colors dependent on status, optionally overriden by highlights
@@ -27,3 +25,10 @@ class Field:
         """Update status and color"""
         self.status = status
         self.set_color()
+
+    def is_valid_target(self):
+        """Check if the field is a valid target"""
+        return self.status in [
+            "unknown",
+            "ship",
+        ]

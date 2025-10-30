@@ -26,17 +26,18 @@ class BattleshipEnv(gym.Env):
         self.grid = None
         self.done = False
 
-    def reset(self, *, seed=None, options=None):
+    def reset(self, *, seed=None, options=None, masking: bool):
         super().reset(seed=seed)
         ships_queue = deque([k for k, v in SHIPS_DICT.items() for _ in range(v)])
         self.grid = generate_random_grid(ships_queue)
         self.done = False
         state = self.get_state_from_grid(self.grid)
-        # info = {}
-        info = {"action_mask": self.get_action_mask()}
+        info = (
+            {"action_mask": self.get_action_mask()} if masking else {}
+        )  # get mask of invalid shots if required
         return state, info
 
-    def step(self, action):
+    def step(self, action, masking: bool):
         row = action // self.grid_size
         col = action % self.grid_size
         target = self.grid[row, col]
@@ -46,8 +47,7 @@ class BattleshipEnv(gym.Env):
         reward = -0.01
 
         observation = self.get_state_from_grid(self.grid)
-        # info = {}
-        info = {"action_mask": self.get_action_mask()}
+        info = {"action_mask": self.get_action_mask()} if masking else {}
         return observation, reward, self.done, False, info  # obs, reward, terminated, truncated, info
 
     @staticmethod
