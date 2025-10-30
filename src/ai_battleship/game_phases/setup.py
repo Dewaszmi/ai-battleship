@@ -115,4 +115,6 @@ class Setup(Phase):
 
     def next_phase(self):
         """Return a new Game phase instance"""
-        return Game(screen=self.screen, player_grid=self.player_grid, ai_grid=self.ai_grid)
+        return Game(
+            screen=self.screen, player_grid=self.player_grid, ai_grid=self.ai_grid, config=self.config
+        )

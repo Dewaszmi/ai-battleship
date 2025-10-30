@@ -10,7 +10,7 @@ import torch
 from gymnasium.vector import SyncVectorEnv
 from typing_extensions import override  # for older python
 
-from ai_battleship.ai.battleship_env_gym import BattleshipEnv
+from ai_battleship.ai.envs.battleship_env_gym import BattleshipEnv
 from ai_battleship.ai.ppo import Agent
 from ai_battleship.constants import HIGHLIGHT_COLORS
 from ai_battleship.game_phases.base import Cursor, Phase
@@ -119,7 +119,11 @@ class Game(Phase):
                 print("Shooting invalid targets is disabled for this session.")
                 return
 
-            shoot(self.ai_grid, self.ai_grid[self.cursor.row, self.cursor.col])
+            shoot(
+                self.ai_grid,
+                self.ai_grid[self.cursor.row, self.cursor.col],
+                mark_sunk_neighbors=self.config.mark_sunk_neighbors,
+            )
             self.check_victory()
             self.draw()
             if not self.done:

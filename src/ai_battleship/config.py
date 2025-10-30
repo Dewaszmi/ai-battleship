@@ -26,7 +26,7 @@ class Config:
             raise AssertionError("Unable to generate a valid grid with specified values") from e
 
         self.model_name = f"Battleship_EPISODES-{self.episode_count}_REPEATSHOTS-{self.block_repeated_shots}_MARKSUNK-{self.mark_sunk_neighbors}.pth"
-        self.model_path = f"/models/{self.model_name}"
+        self.model_path = f"models/{self.model_name}"
 
 
 def generate_config_cli() -> Config:

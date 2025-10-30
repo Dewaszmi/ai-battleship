@@ -3,7 +3,6 @@
 from collections import deque
 from random import choice
 
-from ai_battleship.config import Config
 from ai_battleship.constants import *
 from ai_battleship.field import Field
 from ai_battleship.grid import Grid

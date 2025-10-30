@@ -9,11 +9,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import tyro
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 
-import ai_battleship.envs
+import ai_battleship.ai.envs
 from ai_battleship.config import Config
 
 
@@ -37,7 +36,7 @@ class Args:
     """whether to capture videos of the agent performances (check out `videos` folder)"""
 
     # Algorithm specific arguments
-    env_id: str = "Battleship-v0"
+    env_id: str = "Battleship-v0"  # custom env
     """the id of the environment"""
     total_timesteps: int = 500000
     """total timesteps of the experiments"""
@@ -149,7 +148,7 @@ def train_loop(config):
     if config is None:
         config = Config()
 
-    args = tyro.cli(Args)
+    args = Args()
     args.total_timesteps = config.episode_count  # override ppo argument parsing
 
     args.batch_size = int(args.num_envs * args.num_steps)

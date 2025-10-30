@@ -26,8 +26,9 @@ class BattleshipEnv(gym.Env):
         self.grid = None
         self.done = False
 
-    def reset(self, *, seed=None, options=None, masking: bool):
+    def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
+        masking = True
         ships_queue = deque([k for k, v in SHIPS_DICT.items() for _ in range(v)])
         self.grid = generate_random_grid(ships_queue)
         self.done = False

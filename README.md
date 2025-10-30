@@ -1,12 +1,21 @@
 # AI battleship game
 
-### Implementation of the Battleship board game which places the player against an AI model trained via reinforcement learning methods.
+## Implementation of the Battleship board game which places the player against an AI model trained via reinforcement learning methods.
 
 The project consists of the code to train an agent to play Battleship as well as a graphical port of the game for the human player to use.
 
 The algorithm used for training is a modified version of the [classic PPO implementation](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py) from the [CleanRL library](https://github.com/vwxyzjn/cleanrl). It utilises a custom Battleship Gymnasium environment, which takes additional arguments in the training script to set special "difficulty" variations for the agent to learn (or not ^\_^).
 
 The project also includes the ability to log and monitor training processes via Tensorboard (also borrowed from the CleanRL's project repository).
+
+### Goals for the agent to learn:
+
+- shooting tiles vertically or horizontally adjacent to a successful hit is valuable --> results in a high probability of getting another hit
+
+This is the main requirement for the agent to learn, to achieve this I'm using a convolutional neural network to process the playing grid akin to a low resolution image.
+
+- repeated shooting of the same field is unwanted --> (no valuable reward)
+- shooting the neighboring fields of a sunk ship is bad --> (guaranteed to have no ship fields)
 
 ## Setup
 
@@ -25,11 +34,15 @@ should prepare the virtual environment with all the dependencies ready.
 
 ## Usage
 
+Both train_agent.py and start_game.py accept the same command line arguments:
+- --episodes (default = 3000000) - number of episodes used to train the agent (higher values result in a better adapted agent)
+- --block-repeated-shots (boolean 0/1, default = 1) - first "difficulty" setting, indicates whether the agent (and the player) can repeatedly target the same tile. Turning it off makes the task significantly 
+- **--mark-sunk-neighbors** (boolean 0/1, default = 0) - second "difficulty" setting, indicates whether
+
 **Training the agent:**
 
 ```
 python train_agent.py [arguments]
-python src/ai_battleship/ai/ppo.py --seed 1 --env-id Battleship-v0 --total-timesteps 1000000
 ```
 
 **Start the game:**
