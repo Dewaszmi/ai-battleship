@@ -8,16 +8,16 @@ def main():
     config = generate_config_cli()
     print(
         f"""
-          Attempting to train agent with specified rules:
-          episode_count={config.episode_count}, allow_repeated_shots={config.allow_repeated_shots}, mark_sunk_neighbors={config.mark_sunk_neighbors}
-          """
+Attempting to train agent with specified rules:
+episode_count={config.episode_count}, allow_repeated_shots={config.allow_repeated_shots}, mark_sunk_neighbors={config.mark_sunk_neighbors}
+"""
     )
     model_path = Path(config.model_path)
     if model_path.exists():
         print(
             f"""
-                Found existing agent matching the specified rules in the models/ directory under {config.model_name}, aborting.
-              """
+Found existing agent matching the specified rules in the models/ directory under {config.model_path}, aborting.
+"""
         )
         return
 

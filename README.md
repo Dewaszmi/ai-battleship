@@ -14,8 +14,6 @@ The environment is defined as a 10x10 square grid consisting of tiles, some of w
 
 The reward is a static -0.01 for each action taken, encouraging the agent to complete the episode in the least amount of shots. I found this to work better than giving more specialised rewards based on what the action was, plus it's simpler.
 
-The PPO code is located under /src/ai_battleship/ai/ppo.py, and the environment
-
 ### Goals for the agent to learn:
 
 - **Shooting tiles vertically or horizontally adjacent to a successful hit is valuable --> results in a high probability of getting another hit**
@@ -30,13 +28,13 @@ The PPO code is located under /src/ai_battleship/ai/ppo.py, and the environment
 
 - **Repeated shooting of the same field is unwanted --> no valuable reward \[optional\]**
 
-  Whether the ai has to learn this rule is dependant on one of the two "difficulty" settings. Passing the **--allow-repeated-shots** argument with a value of '1' (True) allows the agent (and player) to repeatedly target the same tile, meaning the agent needs to learn to avoid doing so. This might result in very low rewards in the early training stages, as the agent might waste hundreds of shots on already targeted fields.
+  Dependent on **--allow-repeated-shots** argument, passing the value of '1' (True) allows the agent (and player) to repeatedly target the same tile, meaning the agent needs to learn to avoid doing so. This might result in very low rewards in the early training stages, as the agent might waste hundreds of shots on already targeted fields.
 
 - **Shooting the neighboring tiles of a sunk ship is unwanted --> guaranteed to be unsuccesful \[optional\]**
 
-  This is the second rule of which whether the ai has to learn is dependant on the "difficulty" settings: passing the **--mark-sunk-neighbors** argument with a value of '1' (True) automatically marks the neighboring tiles of a sunk ship as misses, which blocks / discourages the agent from targeting them. Disabling this results in a slightly harder task for the agent.
+  Dependent on **--mark-sunk-neighbors** argument, passing the value of '1' (True) automatically marks the neighboring tiles of a sunk ship as misses, which blocks / discourages the agent from targeting them. Disabling this results in a slightly harder task for the agent.
 
-The default values for difficulty arguments are both '0', mimicking the standard Battleship board game rules. This means the agent won't target already shot fields, but has to learn avoiding shooting sunken tile neighbors.
+The default values for the two difficulty arguments are both '0', mimicking the standard Battleship board game rules.
 
 ## Setup
 
@@ -61,7 +59,7 @@ Both train_agent.py and start_game.py accept the same command line arguments:
 
 - **--allow-repeated-shots** (boolean 0/1, default = 0) - first difficulty setting, indicates whether the agent (and the player) can target the same tile multiple times.
 
-- **--mark-sunk-neighbors** (boolean 0/1, default = 0) - second difficulty setting, indicates whether the tiles surrounding the sunk ships are automatically marked as empty / misses
+- **--mark-sunk-neighbors** (boolean 0/1, default = 0) - second difficulty setting, indicates whether the tiles surrounding the sunk ships are automatically marked as empty / misses.
 
 **Training the agent:**
 

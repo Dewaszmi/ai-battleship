@@ -12,37 +12,38 @@ from ai_battleship.grid import Grid
 
 def generate_random_grid(ships_queue: deque[int], max_attempts: int | None = None):
     """Returns a randomly generated valid grid.
-
     If max_attempts is defined, throws an error if unable to generate valid grid in specified amount.
     """
     grid = Grid(GRID_SIZE)
     ships_queue = deque(ships_queue)
     current_ship = get_next_ship(ships_queue)
 
-    while current_ship and (max_attempts is None or max_attempts > 0):
-        # Try a random position and direction
-        random_dir = choice(["v", "h"])
-        random_field = choice(get_valid_placements(grid, random_dir, current_ship))
-        random_position = get_ship_position(
-            grid, random_field.row, random_field.col, random_dir, current_ship
-        )
+    try:
+        while current_ship and (max_attempts is None or max_attempts > 0):
+            # Try a random position and direction
+            random_dir = choice(["v", "h"])
+            random_field = choice(get_valid_placements(grid, random_dir, current_ship))
+            random_position = get_ship_position(
+                grid, random_field.row, random_field.col, random_dir, current_ship
+            )
 
-        # Try to place ship, if successful get next ship
-        if place_ship(grid, random_position):
-            current_ship = get_next_ship(ships_queue)
+            # Try to place ship, if successful get next ship
+            if place_ship(grid, random_position):
+                current_ship = get_next_ship(ships_queue)
 
-        if max_attempts is not None:
-            max_attempts -= 1
+            if max_attempts is not None:
+                max_attempts -= 1
 
-    if current_ship:
+        if current_ship:
+            raise RuntimeError
+    except (IndexError, RuntimeError):
         raise RuntimeError(
             """
-            Failed to generate a valid AI grid.
-            This is almost certainly caused by the grid size being too small to properly place all the ships without obstructions / going out of bounds.
-            Please review the GRID_SIZE and SHIPS_DICT constants in the src/ai_battleship/constants.py file to make sure they allow for proper placement.
-            """
+Failed to generate a valid AI grid.
+This is almost certainly caused by the grid size being too small to properly place all the ships without obstructions / going out of bounds.
+Please review the GRID_SIZE and SHIPS_DICT constants in the src/ai_battleship/constants.py file to make sure they allow for proper placement.
+"""
         )
-
     return grid
 
 

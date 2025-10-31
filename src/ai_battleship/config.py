@@ -20,10 +20,9 @@ class Config:
 
         ships_queue = deque([k for k, v in SHIPS_DICT.items() for _ in range(v)])
 
-        try:
-            generate_random_grid(ships_queue, max_attempts=99999)
-        except RuntimeError as e:
-            raise AssertionError("Unable to generate a valid grid with specified values:") from e
+        generate_random_grid(
+            ships_queue, max_attempts=99999
+        )  # generate test grid to make sure the defined constants allow for valid placement
 
         self.model_name = f"Battleship_EPISODES-{self.episode_count}_REPEATSHOTS-{self.allow_repeated_shots}_MARKSUNK-{self.mark_sunk_neighbors}.pth"
         self.model_path = f"models/{self.model_name}"
