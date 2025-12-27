@@ -6,7 +6,7 @@ The project consists of the code to train an agent to play Battleship as well as
 
 The algorithm used for training is a modified version of the [classic PPO implementation](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py) from the [CleanRL library](https://github.com/vwxyzjn/cleanrl). It utilises a custom Battleship Gymnasium environment, which takes additional arguments in the training script to set special "difficulty" variations for the agent to learn (or not ^\_^).
 
-The project includes the ability to store and compare agents trained with different rulesets of the game environment, as well as log and monitor training processes via Tensorboard (borrowed from the CleanRL's project repository).
+The project includes the ability to store and compare models trained with different rulesets of the game environment, as well as log and monitor training processes via Tensorboard (borrowed from the CleanRL's project repository).
 
 ## AI specification
 
@@ -19,7 +19,6 @@ The reward is a static -0.01 for each action taken, encouraging the agent to com
 - **Shooting tiles vertically or horizontally adjacent to a successful hit is valuable --> results in a high probability of getting another hit**
 
   This is the main requirement for the agent to learn in order to play correctly. To achieve this I used a convolutional neural network in order to process the playing grid akin to a low resolution image. The grid is split into 3 channels encoding the following states:
-
   - Valid shots - unshot fields, can be either empty or contain a ship. These are the tiles that should be targeted by the agent.
 
   - Hits - shot, but not sunk ship fields. The agent should use them as guides onto which fields to target next (as ship tiles lay together). These tiles however should **not** be targeted by the agent (as repeated shooting of the same tile yields no reward)
@@ -43,6 +42,8 @@ As the main training loop is taken from CleanRL's repository, most of the depend
 Main requirement is **Python version >=3.7.1,<3.11**, after that the easiest way to setup is via uv:
 
 ```
+pyenv install 3.10
+pyenv local 3.10 # in project directory
 uv venv
 uv pip install -e .
 ```
@@ -53,18 +54,18 @@ should prepare the virtual environment with all the dependencies ready.
 
 ## Usage
 
-Both train_agent.py and start_game.py accept the same command line arguments:
+Both train_model.py and start_game.py accept the same command line arguments:
 
 - **--episodes** (default = 3000000) - number of episodes used to train the agent
 
 - **--allow-repeated-shots** (boolean 0/1, default = 0) - first difficulty setting, indicates whether the agent (and the player) can target the same tile multiple times.
 
-- **--mark-sunk-neighbors** (boolean 0/1, default = 0) - second difficulty setting, indicates whether the tiles surrounding the sunk ships are automatically marked as empty / misses.
+- **--mark-sunk-neighbors** (boolean 0/1, default = 1) - second difficulty setting, indicates whether the tiles surrounding the sunk ships are automatically marked as empty / misses.
 
-**Training the agent:**
+**Training the model:**
 
 ```
-python train_agent.py [arguments]
+python train_model.py [arguments]
 ```
 
 runs the training loop, saving the trained model to the models/ directory upon finishing, and creates a log entry in the runs/ directory.

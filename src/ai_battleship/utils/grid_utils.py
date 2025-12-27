@@ -3,8 +3,6 @@
 from collections import deque
 from random import choice
 
-import numpy as np
-
 from ai_battleship.constants import *
 from ai_battleship.field import Field
 from ai_battleship.grid import Grid
@@ -56,10 +54,14 @@ def get_valid_placements(grid: Grid, direction: str, ship_length: int) -> list[F
     else:
         max_col = grid.grid_size - ship_length
 
-    return [f for row in grid.fields for f in row if f.row <= max_row and f.col <= max_col]
+    return [
+        f for row in grid.fields for f in row if f.row <= max_row and f.col <= max_col
+    ]
 
 
-def get_ship_position(grid: Grid, _row: int, _col: int, direction: str, ship_length: int) -> list[Field]:
+def get_ship_position(
+    grid: Grid, _row: int, _col: int, direction: str, ship_length: int
+) -> list[Field]:
     """Gets position occupied by ship with set coordinates and direction"""
     row, col = _row, _col
     position: list[Field] = []
@@ -149,14 +151,3 @@ def clear_highlights(grid: Grid):
     """Remove all highlights from the grid"""
     for f in grid.fields.flat:
         f.set_color()
-
-
-# def get_action_mask(grid: Grid):
-#     """Get the mask of valid targets from a grid"""
-#     mask = np.zeros(grid.grid_size**2, dtype=np.int8)
-#     for r in range(grid.grid_size):
-#         for c in range(grid.grid_size):
-#             field = grid.fields[r][c]
-#             if field.status in ("unknown", "ship"):  # valid if not already shot / confirmed empty
-#                 mask[r * grid.grid_size + c] = 1
-#     return mask

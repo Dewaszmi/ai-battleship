@@ -12,7 +12,7 @@ class Config:
         self,
         episode_count: int = 3000000,
         allow_repeated_shots: bool = 0,
-        mark_sunk_neighbors: bool = 0,
+        mark_sunk_neighbors: bool = 1,
     ):
         self.episode_count = episode_count
         self.allow_repeated_shots = allow_repeated_shots
@@ -31,20 +31,22 @@ class Config:
 def generate_config_cli() -> Config:
     """CLI argument parser to generate config"""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--episodes", type=int, default=3000000, help="Number of episodes to run")
+    parser.add_argument(
+        "--episodes", type=int, default=3000000, help="Number of episodes to run"
+    )
     parser.add_argument(
         "--allow-repeated-shots",
-        type=bool,
+        type=int,
         choices=[0, 1],
         default=0,
         help="Allow the agent to shoot the same tile repeatedly (default: 0)",
     )
     parser.add_argument(
         "--mark-sunk-neighbors",
-        type=bool,
+        type=int,
         choices=[0, 1],
-        default=0,
-        help="Automatically mark tiles surrounding sunk ship as guaranteed misses (default: 0)",
+        default=1,
+        help="Automatically mark tiles surrounding sunk ship as guaranteed misses (default: 1)",
     )
     args = parser.parse_args()
 
